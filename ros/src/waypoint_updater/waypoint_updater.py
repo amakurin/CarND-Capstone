@@ -48,7 +48,7 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, waypoints):
         # TODO: Implement
-        print ("=======",waypoints)
+        print ("=======",waypoints) 
         pass
 
     def traffic_cb(self, msg):
