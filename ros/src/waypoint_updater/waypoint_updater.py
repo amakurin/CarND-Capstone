@@ -48,10 +48,26 @@ class WaypointUpdater(object):
 
         rospy.spin()
 
+    def euclidean_distance(self, position1, position2):
+        a = position1
+        b = position2
+        return math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
     def get_closest_waypoint(self):
-        return 0
-
+        min_dist = 100000
+        min_ind = 0
+        ind = 0
+        position1 = self.current_pose.pose.position
+        for wp in self.current_waypoints:
+            position2 = wp.pose.pose.position 
+            dist = self.euclidean_distance(position1, position2)
+            if dist < min_dist:
+                min_dist = dist
+                min_ind = ind
+            ind += 1
+        return min_ind
+#1131
+#1183
     # publish final_waypoints 
     def publish(self):
         if (not rospy.is_shutdown() \
@@ -61,7 +77,7 @@ class WaypointUpdater(object):
                 lane = Lane()
                 lane.header.frame_id = '/world'
                 lane.header.stamp = rospy.Time(0)
-                lane.waypoints = self.current_waypoints[closest_waypoint_ahead_index:]
+                lane.waypoints = self.current_waypoints[closest_waypoint_ahead_index:closest_waypoint_ahead_index+LOOKAHEAD_WPS]
                 self.final_waypoints_pub.publish(lane)
         pass
 
