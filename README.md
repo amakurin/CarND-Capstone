@@ -8,9 +8,11 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
   * 2 GB system memory
   * 25 GB of free hard drive space
   
-  The Udacity provided [virtual machine](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/Udacity_VM_Base_V1.0.0.zip) has ROS and Dataspeed DBW already installed, so you can skip the next two steps if you are using this. 
   
-  Instruction of setting up Udacity VM can be found [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/7e3627d7-14f7-4a33-9dbf-75c98a6e411b/concepts/8c742938-8436-4d3d-9939-31e40284e7a6)
+  
+The Udacity provided [virtual machine](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/Udacity_VM_Base_V1.0.0.zip) has ROS and Dataspeed DBW already installed, so you can skip the next two steps if you are using this. 
+  
+Instruction of setting up Udacity VM can be found [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/7e3627d7-14f7-4a33-9dbf-75c98a6e411b/concepts/8c742938-8436-4d3d-9939-31e40284e7a6)
 
   
 **IF YOU CHOOSE TO SETUP VM FROM SCRATCH (AND NOT USE UDACITY VM)**
