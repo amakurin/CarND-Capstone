@@ -49,7 +49,7 @@ class WaypointUpdater(object):
         rospy.spin()
 
 
-    def get_closest_waypoint(self)
+    def get_closest_waypoint(self):
         return 0
 
     # publish final_waypoints 
