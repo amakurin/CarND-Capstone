@@ -36,19 +36,45 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below        
+        # TODO: Add other member variables you need below 
+
+        # current path
+        # NOTE: supposedly comes from top level planner (from file for simulator) at rate 40
+        current_waypoints = None
+
+        # current pose     
+        # NOTE: supposedly comes from fusion (briged from simulator) at unknown rate   
+        current_pose = None
 
         rospy.spin()
 
 
+    def get_closest_waypoint(self)
+        return 0
+
+    # publish final_waypoints 
+    def publish(self):
+        if (not rospy.is_shutdown() 
+            and (current_pose is not None) 
+            and (current_waypoints is not None)):
+                closest_waypoint_ahead_index = self.get_closest_waypoint()
+                lane = Lane()
+                lane.header.frame_id = '/world'
+                lane.header.stamp = rospy.Time(0)
+                lane.waypoints = self.current_waypoints[closest_waypoint_ahead_index:]
+                self.final_waypoints_pub.publish(lane)
+        pass
 
     def pose_cb(self, msg):
         # TODO: Implement
+        self.current_pose = msg
+        # will publish on each pose update for now 
+        self.publish()
         pass
 
     def waypoints_cb(self, waypoints):
         # TODO: Implement
-        print ("=======",waypoints) 
+        self.current_waypoints = waypoints;
         pass
 
     def traffic_cb(self, msg):
