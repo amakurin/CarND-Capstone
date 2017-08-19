@@ -55,8 +55,8 @@ class WaypointUpdater(object):
     # publish final_waypoints 
     def publish(self):
         if (not rospy.is_shutdown() \
-            and (current_pose is not None) \
-            and (current_waypoints is not None)):
+            and (self.current_pose is not None) \
+            and (self.current_waypoints is not None)):
                 closest_waypoint_ahead_index = self.get_closest_waypoint()
                 lane = Lane()
                 lane.header.frame_id = '/world'
@@ -74,7 +74,7 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, waypoints):
         # TODO: Implement
-        self.current_waypoints = waypoints;
+        self.current_waypoints = waypoints.waypoints;
         pass
 
     def traffic_cb(self, msg):
