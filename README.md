@@ -25,7 +25,7 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 
 * Download the [Udacity Simulator](https://github.com/udacity/self-driving-car-sim/releases/tag/v0.1).
 
-**WARN:** Simulator can run on VM but it'll be extremely slow. Solution is to download version for you HOST OS (not the guest one used for VM) and setup port forwarding to VM.
+**WARN:** Simulator can run on VM but it'll be extremely slow. Solution is to download version for your HOST OS (not the guest one used for VM) and setup port forwarding to VM.
 
 
 **Port Forwarding for Oracle VM VirtualBox**
