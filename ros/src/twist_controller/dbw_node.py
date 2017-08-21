@@ -102,7 +102,8 @@ class DBWNode(object):
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
         self.steer_pub.publish(scmd)
-
+        
+        # TODO: uncomment this but dont publish throttle and break simultaneously
         #bcmd = BrakeCmd()
         #bcmd.enable = True
         #bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
