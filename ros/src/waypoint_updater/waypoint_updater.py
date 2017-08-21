@@ -39,7 +39,7 @@ class WaypointUpdater(object):
         # TODO: Add other member variables you need below 
 
         # current path
-        # NOTE: supposedly comes from top level planner (from file for simulator) at rate 40
+        # NOTE: supposedly comes from top level planner (from file for simulator) at rate 40Hz
         current_waypoints = None
 
         # current pose     
@@ -53,6 +53,7 @@ class WaypointUpdater(object):
         b = position2
         return math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
+    # TODO: FIX THIS: Return closest AHEAD
     def get_closest_waypoint(self):
         min_dist = 100000
         min_ind = 0
