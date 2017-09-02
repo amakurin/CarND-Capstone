@@ -82,7 +82,7 @@ class DBWNode(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(50) # 50Hz
+        rate = rospy.Rate(10) # 50Hz
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
@@ -91,17 +91,17 @@ class DBWNode(object):
                 angular_setpoint    = self.current_setpoint.twist.angular.z; 
                 linear_current      = self.current_velocity.twist.linear.x;          
                 throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, self.dbw_enabled)
-                if linear_current > 1:
+                if linear_current > 1.:
+                    #brake = -5.
                     throttle = 0.
+
                 print('throttle:', throttle, 'brake:', brake, 'steering:', steering)
-                if linear_current > 1:
-                    throttle = 0.
                 if self.dbw_enabled:
                     self.publish(throttle, brake, -steering)
             rate.sleep()
 
     def publish(self, throttle, brake, steer):
-        if self.prev_t != throttle:
+        if True: #self.prev_t != throttle:
             self.prev_t = throttle
             tcmd = ThrottleCmd()
             tcmd.enable = True
@@ -109,10 +109,12 @@ class DBWNode(object):
             tcmd.pedal_cmd = throttle
             self.throttle_pub.publish(tcmd)
 
-        scmd = SteeringCmd()
-        scmd.enable = True
-        scmd.steering_wheel_angle_cmd = steer
-        self.steer_pub.publish(scmd)
+        
+        if False:
+            scmd = SteeringCmd()
+            scmd.enable = True
+            scmd.steering_wheel_angle_cmd = steer
+            self.steer_pub.publish(scmd)
 
         # Note: dont publish throttle and break simultaneously
         if brake > 0.:
