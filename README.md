@@ -60,12 +60,7 @@ catkin_make
 source devel/setup.sh
 roslaunch launch/styx.launch
 ```
+
 4. Run the simulator **DURING** 20sec after starting styx or it'll die on socket timeout
-```bash
-unzip lights_no_cars.zip
-cd lights_no_cars
-chmod +x ros_test.x86_64
-./ros_test.x86_64
-```
 
 
