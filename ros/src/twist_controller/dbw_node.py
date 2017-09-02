@@ -110,7 +110,7 @@ class DBWNode(object):
             self.throttle_pub.publish(tcmd)
 
         
-        if False:
+        if True:
             scmd = SteeringCmd()
             scmd.enable = True
             scmd.steering_wheel_angle_cmd = steer

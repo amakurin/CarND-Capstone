@@ -28,9 +28,11 @@ bridge.register_server(send)
 @sio.on('telemetry')
 def telemetry(sid, data):
     global dbw_enable
-    if data["dbw_enable"] != dbw_enable:
-        dbw_enable = data["dbw_enable"]
+    dbw_mode_upd = data.get("dbw_enable", dbw_enable)
+    if dbw_mode_upd != dbw_enable:
+        dbw_enable = dbw_mode_upd
         bridge.publish_dbw_status(dbw_enable)
+        
     bridge.publish_odometry(data)
     for i in range(len(msgs)):
         topic, data = msgs.popitem()
