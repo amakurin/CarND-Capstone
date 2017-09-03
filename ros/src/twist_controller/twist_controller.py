@@ -17,7 +17,7 @@ class Controller(object):
         max_lat_accel 	= kwargs['max_lat_accel']
         max_steer_angle = kwargs['max_steer_angle']
 
-        min_speed = 0.; #??
+        min_speed = 0. #??
         yaw_params = [wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle]
         self.yaw_controller = YawController(*yaw_params)
         self.linear_pid = PID(0.02, 0.0, 0.02, decel_limit, accel_limit)
@@ -33,8 +33,7 @@ class Controller(object):
         brake = 0.
         if throttle < 0:
         	throttle = 0.
-        	brake = abs(throttle)
+        	brake = throttle
 
         steering = self.yaw_controller.get_steering(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
-        #print('----', linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity, math.degrees(steering))
         return 0.2, 0.0, steering
