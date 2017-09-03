@@ -74,11 +74,6 @@ class DBWNode(object):
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
 
-        self.prev_t = 0.
-        self.prev_b = 0.
-        self.prev_s = 0.
-
-
         self.loop()
 
     def loop(self):
