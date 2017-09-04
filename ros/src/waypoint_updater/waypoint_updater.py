@@ -109,6 +109,9 @@ class WaypointUpdater(object):
         if (angle > math.pi/4):
             ind += 1
 
+        #if ind > 400:
+        #    rospy.logerr("ZERO VEL!!")
+
         #print ('finx:', self.current_waypoints[ind].pose.pose.position.x, 'finy:', self.current_waypoints[ind].pose.pose.position.y)
         return ind
 
@@ -118,6 +121,8 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, lane):
         self.current_waypoints = lane.waypoints;
+        #for i in range(400,600):
+        #    self.current_waypoints[i].twist.twist.linear.x = 0
         pass
 
     def traffic_cb(self, msg):
