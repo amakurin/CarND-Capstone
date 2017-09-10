@@ -83,9 +83,10 @@ class DBWNode(object):
             # You should only publish the control commands if dbw is enabled
             if (self.current_velocity is not None) and (self.current_setpoint is not None):
                 linear_setpoint     = self.current_setpoint.twist.linear.x;            
-                angular_setpoint    = self.current_setpoint.twist.angular.z; 
-                linear_current      = self.current_velocity.twist.linear.x;          
-                throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, self.dbw_enabled)
+                angular_setpoint    = self.current_setpoint.twist.angular.z;
+                linear_current      = self.current_velocity.twist.linear.x;
+                angular_current     =  self.current_velocity.twist.angular.z;
+                throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, angular_current, self.dbw_enabled)
                 
                 #if linear_setpoint<0.01:
                 #    rospy.logerr("ZERO VEL!!:: thro=%s brake=%s", throttle, brake)
