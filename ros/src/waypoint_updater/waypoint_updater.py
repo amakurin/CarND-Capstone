@@ -22,7 +22,7 @@ LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this 
 POSITION_SEARCH_RANGE = 10  # Number of waypoints to search current position back and forth
 
 TRAFFIC_LIGHT_DISTANCE = 80.0 # The maximum distance to investigate a traffic light
-TRAFFIC_LIGHT_STOP_DISTANCE = 27.0 # Target distance to stop before a traffic light
+TRAFFIC_LIGHT_STOP_DISTANCE = 30.0 # Target distance to stop before a traffic light
 
 MAX_SPEED = 11.2 # Target speed
 MIN_SPEED = 2. # Min speed to go to stop line from zero speed state
@@ -132,10 +132,10 @@ class WaypointUpdater(object):
             if (self.stop_trajectory):
                 start_index = self.stop_trajectory[0]
                 velocities = self.stop_trajectory[1]
-                shift = 0 if start_index == next_waypoint_index else next_waypoint_index - start_index
+                shift = 0 if (start_index == next_waypoint_index) else (next_waypoint_index - start_index)
                 for i in range(LOOKAHEAD_WPS):
-                    shifted_i = min(i + shift, LOOKAHEAD_WPS - 1)
-                    lane.waypoints[i].twist.twist.linear.x = velocities[shifted_i] if (shifted_i < len(velocities)) else 0.
+                    shifted_i = i + shift
+                    lane.waypoints[i].twist.twist.linear.x = velocities[shifted_i] if (0 <= shifted_i < len(velocities)) else 0.
             else:
                 for i in range(LOOKAHEAD_WPS):
                     lane.waypoints[i].twist.twist.linear.x = MAX_SPEED
