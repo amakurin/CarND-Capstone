@@ -51,8 +51,8 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/traffic_lights',
-                         TrafficLightArray, self.traffic_cb, queue_size=1)
+        #rospy.Subscriber('/vehicle/traffic_lights',
+        #                 TrafficLightArray, self.traffic_cb, queue_size=1)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
@@ -70,29 +70,7 @@ class WaypointUpdater(object):
         # NOTE: supposedly comes from fusion (briged from simulator) at unknown rate
         self.current_pose = None
 
-        self.loop()
-
-    def loop(self):
-        rate = rospy.Rate(20)  # 40Hz
-        while not rospy.is_shutdown():
-            if ((self.current_pose is not None) and (self.current_waypoints is not None)):
-                next_waypoint_index = self.get_next_waypoint()
-                last_waypoint_index = self.add_waypoint_index(next_waypoint_index,LOOKAHEAD_WPS)
-                lane = Lane()
-                lane.header.frame_id = '/world'
-                lane.header.stamp = rospy.Time(0)
-                lane.waypoints = self.get_waypoint_slice(next_waypoint_index,last_waypoint_index)
-
-                for i in range(LOOKAHEAD_WPS):
-                    wp_index = self.add_waypoint_index(next_waypoint_index,i)
-                    wp = self.current_waypoints[wp_index]
-                    if DEBUG_PYTHON_PUB:
-                        print("PUB ", self.tlc, wp_index, "wp_size:", self.current_waypoint_size, "wp:",
-                              self.position_str(wp.pose.pose.position), "v:", wp.twist.twist.linear.x)
-
-                self.final_waypoints_pub.publish(lane)
-
-            rate.sleep()
+        rospy.spin()
 
     def euclidean_distance(self, position1, position2):
         a = position1
@@ -137,22 +115,37 @@ class WaypointUpdater(object):
         x = self.current_pose.pose.position.x
         y = self.current_pose.pose.position.y
 
-        heading = math.atan2((map_y - y), (map_x - x))
         yaw = self.current_yaw()
-        angle = abs(yaw - heading)
-
-        if (angle > math.pi / 4):
+        
+        x_car_system = ((map_x-x) * math.cos(yaw) + (map_y-y) * math.sin(yaw))
+        if ( x_car_system < 0. ):
             ind += 1
-
         return ind
 
     def pose_cb(self, msg):
         self.current_pose = msg
 
+        if (not rospy.is_shutdown() and (self.current_waypoints is not None)):
+            next_waypoint_index = self.get_next_waypoint()
+            last_waypoint_index = self.add_waypoint_index(next_waypoint_index,LOOKAHEAD_WPS)
+            lane = Lane()
+            lane.header.frame_id = self.current_pose.header.frame_id
+            lane.header.stamp = rospy.Time(0)
+            lane.waypoints = self.get_waypoint_slice(next_waypoint_index,last_waypoint_index)
+
+            for i in range(LOOKAHEAD_WPS):
+                wp_index = self.add_waypoint_index(next_waypoint_index,i)
+                wp = self.current_waypoints[wp_index]
+                if DEBUG_PYTHON_PUB:
+                    print("PUB ", self.tlc, wp_index, "wp_size:", self.current_waypoint_size, "wp:",
+                          self.position_str(wp.pose.pose.position), "v:", wp.twist.twist.linear.x)
+
+            self.final_waypoints_pub.publish(lane)
+
+
     def waypoints_cb(self, lane):
-        if self.current_waypoints is None:
-            self.current_waypoints = lane.waypoints
-            self.current_waypoint_size = len(self.current_waypoints)
+        self.current_waypoints = lane.waypoints
+        self.current_waypoint_size = len(self.current_waypoints)
 
     def add_waypoint_index(self, index, add_to_index):
         """Find new_index, 'add_to_index' waypoints after the 'index'
