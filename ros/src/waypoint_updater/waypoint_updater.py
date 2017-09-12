@@ -47,20 +47,20 @@ class WaypointUpdater(object):
         # NOTE: supposedly comes from fusion (briged from simulator) at unknown rate   
         self.current_pose = None
 
-        self.loop()
+        rospy.spin()
 
-    def loop(self):
-        rate = rospy.Rate(20) # 40Hz
-        while not rospy.is_shutdown():
-            if ((self.current_pose is not None) and (self.current_waypoints is not None)):
-                next_waypoint_index = self.get_next_waypoint()
-                lane = Lane()
-                lane.header.frame_id = '/world'
-                lane.header.stamp = rospy.Time(0)
-                lane.waypoints = self.current_waypoints[next_waypoint_index:next_waypoint_index+LOOKAHEAD_WPS]
-                self.final_waypoints_pub.publish(lane)
-
-            rate.sleep()
+#    def loop(self):
+#        rate = rospy.Rate(30) # 40Hz
+#        while not rospy.is_shutdown():
+#            if ((self.current_pose is not None) and (self.current_waypoints is not None)):
+#                next_waypoint_index = self.get_next_waypoint()
+#                lane = Lane()
+#                lane.header.frame_id = '/world'
+#                lane.header.stamp = rospy.Time(0)
+#                lane.waypoints = self.current_waypoints[next_waypoint_index:next_waypoint_index+LOOKAHEAD_WPS]
+#                self.final_waypoints_pub.publish(lane)
+#
+#            rate.sleep()
 
     def euclidean_distance(self, position1, position2):
         a = position1
@@ -100,13 +100,13 @@ class WaypointUpdater(object):
         x = self.current_pose.pose.position.x
         y = self.current_pose.pose.position.y
 
-        heading = math.atan2((map_y-y), (map_x-x))
+        #heading = math.atan2((map_y-y), (map_x-x))
         yaw = self.current_yaw()
-        angle = abs(yaw - heading);
+        #angle = abs(yaw - heading);
 
         #print ('yaw:', yaw, 'heading:', heading, 'angle:', angle, map_x, map_y, x, y)
 
-        if (angle > math.pi/4):
+        if ( ((map_x-x) * math.cos(yaw) + (map_y-y) * math.sin(yaw)) < 0.):
             ind += 1
 
         #if ind > 400:
@@ -117,6 +117,14 @@ class WaypointUpdater(object):
 
     def pose_cb(self, msg):
         self.current_pose = msg
+        if not rospy.is_shutdown():
+            if ((self.current_pose is not None) and (self.current_waypoints is not None)):
+                next_waypoint_index = self.get_next_waypoint()
+                lane = Lane()
+                lane.header.frame_id = self.current_pose.header.frame_id
+                lane.header.stamp = rospy.Time(0)
+                lane.waypoints = self.current_waypoints[next_waypoint_index:next_waypoint_index+LOOKAHEAD_WPS]
+                self.final_waypoints_pub.publish(lane)
         pass
 
     def waypoints_cb(self, lane):
