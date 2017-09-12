@@ -21,6 +21,7 @@ class Controller(object):
         min_speed = 0. #??
         yaw_params = [wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle]
         self.yaw_controller = YawController(*yaw_params)
+        #self.linear_pid = PID(0.12, 0.0005, 0.04, -accel_limit, accel_limit)
         self.linear_pid = PID(0.12, 0.0005, 0.04, -accel_limit, accel_limit)
         self.tau_throttle = 0.2
         self.ts_throttle = 0.1
@@ -39,7 +40,9 @@ class Controller(object):
         else:
             self.previous_dbw_enabled = False
         linear_velocity_error = linear_velocity_setpoint - linear_current_velocity
-        sample_step = 0.05 # ???
+        #sample_step = 0.05 # ???
+        #sample_step = 0.02
+        sample_step = 0.02
         velocity_correction = self.linear_pid.step(linear_velocity_error, sample_step)
         throttle = velocity_correction
         brake = 0.
@@ -48,5 +51,6 @@ class Controller(object):
             throttle = 0.
         throttle = self.low_pass_filter_throttle.filt(throttle)
         brake = self.low_pass_filter_brake.filt(brake)
-        steering = self.yaw_controller.get_steering(angular_velocity_setpoint, angular_current, dbw_enabled)
+        #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
+        steering = 10.0 * self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
         return throttle, brake, steering

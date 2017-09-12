@@ -18,7 +18,7 @@ class YawController(object):
         self.previous_dbw_enabled = False
         self.min_angle = -max_steer_angle
         self.max_angle = max_steer_angle
-        self.linear_pid = PID(2.0, 0.0024, 0.0001, self.min_angle, self.max_angle)
+        self.linear_pid = PID(7.0, 0.004, 0.001, self.min_angle, self.max_angle)
         self.tau = 0.2
         self.ts = 0.1
         self.low_pass_filter = LowPassFilter(self.tau, self.ts)
@@ -27,9 +27,20 @@ class YawController(object):
         angle = math.atan(self.wheel_base / radius) * self.steer_ratio
         return max(self.min_angle, min(self.max_angle, angle))
 
-    def get_steering(self, angular_velocity, angular_current, dbw_enabled):
+    def get_steering_calculated(self, linear_velocity, angular_velocity, current_velocity):
+        angular_velocity = current_velocity * angular_velocity / linear_velocity if abs(linear_velocity) > 0. else 0.
+
+        if abs(current_velocity) > 0.1:
+            max_yaw_rate = abs(self.max_lat_accel / current_velocity)
+            angular_velocity = max(-max_yaw_rate, min(max_yaw_rate, angular_velocity))
+
+        return self.get_angle(max(current_velocity, self.min_speed) / angular_velocity) if abs(angular_velocity) > 0. else 0.0;
+
+    def get_steering_pid(self, angular_velocity, angular_current, dbw_enabled):
         angular_error = angular_velocity - angular_current
-        sample_step = 0.05  # ???
+        #sample_step = 0.05  # ???
+        #sample_step = 0.02
+        sample_step = 0.02
         if not(self.previous_dbw_enabled) and dbw_enabled:
             self.previous_dbw_enabled = True
             self.linear_pid.reset()
