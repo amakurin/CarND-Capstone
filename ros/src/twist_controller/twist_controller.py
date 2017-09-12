@@ -50,7 +50,9 @@ class Controller(object):
             brake = 10000*abs(throttle)
             throttle = 0.
         throttle = self.low_pass_filter_throttle.filt(throttle)
-        brake = self.low_pass_filter_brake.filt(brake)
+        #[alexm]::NOTE this lowpass leads to sending both throttle and brake nonzero. Maybe it is better to filter velocity_correction
+        #brake = self.low_pass_filter_brake.filt(brake)
         #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
         steering = 10.0 * self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
+        #[alexm]::NOTE and here is good place to think about filtering to eliminate jitter on steering wheel
         return throttle, brake, steering

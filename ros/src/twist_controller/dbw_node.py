@@ -87,7 +87,6 @@ class DBWNode(object):
                 linear_current      = self.current_velocity.twist.linear.x;
                 angular_current     =  self.current_velocity.twist.angular.z;
                 throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, angular_current, self.dbw_enabled)
-                
                 #if linear_setpoint<0.01:
                 #    rospy.logerr("ZERO VEL!!:: thro=%s brake=%s", throttle, brake)
                 #else:

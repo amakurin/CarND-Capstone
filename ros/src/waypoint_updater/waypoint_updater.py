@@ -3,7 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint, TrafficLight, TrafficLightArray
-
+from std_msgs.msg import Int32
 import math
 import tf
 
@@ -59,6 +59,8 @@ class WaypointUpdater(object):
         self.final_waypoints_pub = rospy.Publisher(
             'final_waypoints', Lane, queue_size=1)
 
+        self.next_wp_pub = rospy.Publisher('/next_wp', Int32, queue_size=1)
+
         # TODO: Add other member variables you need below
 
         # current path
@@ -69,6 +71,8 @@ class WaypointUpdater(object):
         # current pose
         # NOTE: supposedly comes from fusion (briged from simulator) at unknown rate
         self.current_pose = None
+
+        self.last_waypoint_index = None
 
         rospy.spin()
 
@@ -86,14 +90,21 @@ class WaypointUpdater(object):
         min_dist = 100000
         min_ind = 0
         ind = 0
+        
+        start = 0 
+        end = len(self.current_waypoints)
+        if (self.last_waypoint_index):
+            start = max (self.last_waypoint_index-10, 0)
+            end = min (self.last_waypoint_index+10, end)
+
         position1 = self.current_pose.pose.position
-        for wp in self.current_waypoints:
+        for i in range(start, end):
+            wp = self.current_waypoints[i]
             position2 = wp.pose.pose.position
             dist = self.euclidean_distance(position1, position2)
             if dist < min_dist:
                 min_dist = dist
-                min_ind = ind
-            ind += 1
+                min_ind = i
         return min_ind
 
     def current_yaw(self):
@@ -120,6 +131,7 @@ class WaypointUpdater(object):
         x_car_system = ((map_x-x) * math.cos(yaw) + (map_y-y) * math.sin(yaw))
         if ( x_car_system < 0. ):
             ind += 1
+        self.last_waypoint_index = ind
         return ind
 
     def pose_cb(self, msg):
@@ -127,6 +139,8 @@ class WaypointUpdater(object):
 
         if (not rospy.is_shutdown() and (self.current_waypoints is not None)):
             next_waypoint_index = self.get_next_waypoint()
+            self.next_wp_pub.publish(Int32(next_waypoint_index))
+
             last_waypoint_index = self.add_waypoint_index(next_waypoint_index,LOOKAHEAD_WPS)
             lane = Lane()
             lane.header.frame_id = self.current_pose.header.frame_id
