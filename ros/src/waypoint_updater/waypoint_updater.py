@@ -174,8 +174,8 @@ class WaypointUpdater(object):
                 next_velocity_setpoint = max(next_velocity_setpoint, MIN_SPEED)
                 dv = next_velocity_setpoint/indices if (indices != 0) else next_velocity_setpoint
                 velocities = []
-                rospy.logerr("\nstop: %s\n next %s\n ind: %s;\n dv: %s\n"
-                    , stop_line_index, next_waypoint_index, indices, next_velocity_setpoint)   
+                #rospy.logerr("\nstop: %s\n next %s\n ind: %s;\n dv: %s\n"
+                #    , stop_line_index, next_waypoint_index, indices, next_velocity_setpoint)   
                 for i in range(indices + 1):
                     next_velocity_setpoint = next_velocity_setpoint -dv if next_velocity_setpoint > dv else 0.
                     velocities.append(next_velocity_setpoint)
@@ -225,7 +225,7 @@ class WaypointUpdater(object):
 
         if (closest_light and closest_light.state in [0, 1]):
             self.set_stop_trajectory(next_waypoint_index, closest_light)
-            rospy.logerr("stop_trajectory: %s\n ", self.stop_trajectory)
+            #rospy.logerr("stop_trajectory: %s\n ", self.stop_trajectory)
         else:  
             self.stop_trajectory = None
 
