@@ -43,8 +43,6 @@ class Controller(object):
         return sample_step
 
     def control(self, linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity, angular_current, dbw_enabled):
-        # TODO: Change the arg, kwarg list to suit your needs
-        # Return throttle, brake, steer
         if (not self.current_dbw_enabled) and dbw_enabled:
             self.current_dbw_enabled = True
             self.linear_pid.reset()
@@ -55,7 +53,7 @@ class Controller(object):
 
         sample_step = self.update_sample_step()
 
-        if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 0.1:
+        if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 1.0:
             brake = self.brake_tourque_const
             throttle = 0.
         else:
