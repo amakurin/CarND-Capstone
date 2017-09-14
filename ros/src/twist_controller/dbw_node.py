@@ -55,6 +55,9 @@ class DBWNode(object):
 
         # TODO: Create `TwistController` object
         params = {
+            'vehicle_mass'      : vehicle_mass,
+            'fuel_capacity'     : fuel_capacity,
+            'brake_deadband'    : brake_deadband,
             'decel_limit'       : decel_limit,
             'accel_limit'       : accel_limit,
             'wheel_radius'      : wheel_radius,
