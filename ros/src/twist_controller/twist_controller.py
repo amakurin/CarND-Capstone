@@ -72,6 +72,8 @@ class Controller(object):
         #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
         
         #[alexm]::NOTE changed static 10.0 to linear_current_velocity and surprisingly car behave better on low speeds. Need to look close to formulas...
-        steering = linear_current_velocity * self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
-        #[alexm]::NOTE and here is good place to think about filtering to eliminate jitter on steering wheel
+        #PID also improves the same with the factor
+        #moved factor into function because limits are checked in that function
+        steering = self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
+
         return throttle, brake, steering
