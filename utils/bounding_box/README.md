@@ -43,11 +43,19 @@ for img in data:
 		print("\tColor: ", tl["yolo"][0])
 		print("\tBounding box: ", tl["yolo"][1:])
 ```
+## Output format
+
+Every "yolo" field of the output .json file containe the following:
+
+[class_number box_x  box_y box_width box_height]
+
+Classes: 0 - red, 1 - yellow, 2 - green
 
 ## Known issues
 
 * It is need a lot of focus during image labeling as not all operation can be undone.
 * If you use "r" - relable option and "x" on the same image, you will have to lable one more image and only after it try to save and exit with "x".
+* All images should contain at least one labeled traffic light.
 
 Feel free to upgrade the script to meet your needs!
 
