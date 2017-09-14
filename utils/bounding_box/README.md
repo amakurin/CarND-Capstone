@@ -24,7 +24,7 @@ To run the script you have to specify an input directory with images and, option
 3. Draw a rectangle you'd like to lable as a traffic light from top left corner. Move your mouse with left button pressed.  Feel free to redraw it on this step.
 4. Press ESC.
 5. Press 1 - to mark it as red, 2 - yellow, 3 - green.
-6. Press "n" - if you'd like to mark one more traffic light (and repeat steps 3-6) on the image, "r" - to label this image again (e.q. in case of incorrect labeling), "x" to exit and dump the annotation file or ENTER to go to the next image
+6. Press "n" - if you'd like to mark one more traffic light (and repeat steps 3-6) on the image, "r" - to label this image again (e.q. in case of incorrect labeling), "x" to exit and dump the annotation file or ENTER to go to the next image.
 
 **Advice:** Practice with the script using a folder with small amount of images before start labeling the main dataset. If you use "x" during labeling to save and exit, please, merge your annotation .json files on your own.
 
@@ -47,7 +47,7 @@ for img in data:
 ## Known issues
 
 * It is need a lot of focus during image labeling as not all operation can be undone.
-* The script can process only the whole directory
+* If you use "r" - relable option and "x" on the same image, you will have to lable one more image and only after it try to save and exit with "x".
 
 Feel free to upgrade the script to meet your needs!
 
