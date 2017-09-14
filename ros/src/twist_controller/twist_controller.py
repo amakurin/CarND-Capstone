@@ -7,6 +7,9 @@ GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
 
+def rad2deg(x):
+    return x * 180 / math.pi
+
 class Controller(object):
     def __init__(self, *args, **kwargs):
         # TODO: Implement
@@ -21,7 +24,6 @@ class Controller(object):
         min_speed = 0. #??
         yaw_params = [wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle]
         self.yaw_controller = YawController(*yaw_params)
-        #self.linear_pid = PID(0.12, 0.0005, 0.04, -accel_limit, accel_limit)
         self.linear_pid = PID(0.12, 0.0005, 0.04, -accel_limit, accel_limit)
         self.tau_throttle = 0.2
         self.ts_throttle = 0.1
@@ -61,6 +63,9 @@ class Controller(object):
         #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
         
         #[alexm]::NOTE changed static 10.0 to linear_current_velocity and surprisingly car behave better on low speeds. Need to look close to formulas...
-        steering = linear_current_velocity * self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
+        #PID also improves the same with the factor
+        #moved factor into function because limits are checked in that function
+        steering = self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
+        #steering = linear_current_velocity * self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
         #[alexm]::NOTE and here is good place to think about filtering to eliminate jitter on steering wheel
         return throttle, brake, steering
