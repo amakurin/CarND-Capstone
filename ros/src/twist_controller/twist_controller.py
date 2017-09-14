@@ -26,7 +26,7 @@ class Controller(object):
         min_speed = 0. #??
         yaw_params = [wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle]
         self.yaw_controller = YawController(*yaw_params)
-        self.linear_pid = PID(0.4, 0.0005, 0.08, decel_limit, accel_limit)
+        self.linear_pid = PID(0.9, 0.0008, 0.06, decel_limit, accel_limit)
         self.tau_throttle = 0.2
         self.ts_throttle = 0.1
         self.low_pass_filter_throttle = LowPassFilter(self.tau_throttle, self.ts_throttle)
@@ -53,7 +53,7 @@ class Controller(object):
 
         sample_step = self.update_sample_step()
 
-        if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 1.0:
+        if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 0.5:
             brake = self.brake_tourque_const
             throttle = 0.
         else:

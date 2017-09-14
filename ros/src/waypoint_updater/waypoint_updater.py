@@ -7,16 +7,10 @@ from std_msgs.msg import Int32
 import math
 import copy
 import tf
-
+from scipy.interpolate import CubicSpline
 
 LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this number
 POSITION_SEARCH_RANGE = 10  # Number of waypoints to search current position back and forth
-
-TRAFFIC_LIGHT_DISTANCE = 80.0 # The maximum distance to investigate a traffic light
-TRAFFIC_LIGHT_STOP_DISTANCE = 30.0 # Target distance to stop before a traffic light
-
-IGNORE_YELLOW_DISTANCE = 30.0 # Maximum distance to ignore YELLOW light
-IGNORE_RED_DISTANCE = 20.0 # Maximum distance to ignore RED light
 
 MAX_DECEL = 1.
 
@@ -25,9 +19,10 @@ class WaypointUpdater(object):
         rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/traffic_lights',
-                         TrafficLightArray, self.traffic_cb, queue_size=1)
+        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+#        rospy.Subscriber('/vehicle/traffic_lights',
+#                         TrafficLightArray, self.traffic_cb, queue_size=1)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
@@ -74,7 +69,6 @@ class WaypointUpdater(object):
         return min_ind
 
     def current_yaw(self):
-        quaternion = (self.current_pose.pose.orientation.x)
         quaternion = (
             self.current_pose.pose.orientation.x,
             self.current_pose.pose.orientation.y,
@@ -129,85 +123,36 @@ class WaypointUpdater(object):
         #[alexm]NOTE: full search current position on each update of waypoints
         self.next_waypoint_index = None
 
-    def waypoint_to_stop(self, next_waypoint_index, light):
-        light_wp_idx = - 1
-        light_position = light.pose.pose.position
-        for i in range(next_waypoint_index, len(self.current_waypoints)):
-            wp = self.current_waypoints[i]
-            wp_position = wp.pose.pose.position
-            wp_dist = self.euclidean_distance_2d(wp_position, light_position)
-            if (wp_dist < TRAFFIC_LIGHT_STOP_DISTANCE):
-                #[alexm]NOTE: we need previous waypoint here so -1
-                light_wp_idx = max(i-1, next_waypoint_index)
-                break
-        return light_wp_idx
-
-    def set_stop_trajectory(self, next_waypoint_index, light):
+    def set_stop_trajectory(self, next_waypoint_index, stop_line_index):
         if (self.stop_trajectory):
             old_start = self.stop_trajectory[0]
             velocities = self.stop_trajectory[1]
             self.stop_trajectory = [next_waypoint_index, velocities[next_waypoint_index-old_start:]]
-        else:
-            stop_line_index = self.waypoint_to_stop(next_waypoint_index, light)   
+        else:   
             #[alexm]NOTE: gererate simplest linear trajectory. Consider fitting polynomial. 
             if (stop_line_index >= next_waypoint_index):
                 stop_distance = self.distance(self.current_waypoints, next_waypoint_index, stop_line_index) 
                 full_stop_velocity = math.sqrt(2 * MAX_DECEL * stop_distance)
                 target_velocity = self.current_waypoints[next_waypoint_index].twist.twist.linear.x
                 v0 = min(full_stop_velocity, target_velocity)
-                distance_remainder = stop_distance
+                cs = CubicSpline([0., stop_distance/2, stop_distance], [v0, v0/2, 0.])
+                distance = 0
                 velocities = []
-                for i in range(next_waypoint_index, stop_line_index):
-                    velocity_setpoint = v0 * distance_remainder / stop_distance
-                    if velocity_setpoint < 1.:
-                        velocity_setpoint = 0.
+                for i in range(next_waypoint_index, stop_line_index+1):
+                    velocity_setpoint = cs(distance).tolist()
                     velocities.append(velocity_setpoint)
-                    distance_remainder -= self.distance(self.current_waypoints, i, i + 1)
-                    distance_remainder = max (0., distance_remainder)
-
-                velocities.append(0.)    
+                    distance += self.distance(self.current_waypoints, i, i + 1)
                 self.stop_trajectory = [next_waypoint_index, velocities]
 
-
-    def traffic_cb(self, traffic_lights):
-        """ Finds the nearest traffic_light within TRAFFIC_LIGHT_DISTANCE and **IGNORE_DISTNCE
-        if light was found and has state RED or YELLOW sets stopping trajectory
-        """
-        # TODO: Callback for /traffic_waypoint message. Implement
-
-        if (self.current_pose is None):
-            return
+    def traffic_cb(self, traffic_waypoint):
         if (self.next_waypoint_index is None):
             return
         if (self.current_waypoints is None):
             return
 
-        lights = traffic_lights.lights
-
-        car_position = self.current_pose.pose.position
-        min_dist = TRAFFIC_LIGHT_DISTANCE
-        closest_light = None
-        for light in lights:
-            light_position = light.pose.pose.position
-            dist = self.euclidean_distance_2d(car_position, light_position)
-            ignore_distance = IGNORE_RED_DISTANCE 
-            #[alexm]NOTE: I doubt that we need special case for YELLOW, actually we shouldn't enter intersection when light is YELLOW.
-            if light.state in [1]:
-                ignore_distance = IGNORE_YELLOW_DISTANCE 
-
-            if (dist < min_dist) and (dist > ignore_distance):
-                next_position = self.current_waypoints[self.next_waypoint_index].pose.pose.position
-                next_dist = self.euclidean_distance_2d(next_position, light_position)
-                # if the Traffic Light is in front of the car
-                # if TL is getting closer at the next way point
-                # TODO next waypoint may be too close to the current pose,
-                #   which will result in error when detecting nearest light.
-                if next_dist < dist:
-                    min_dist = dist
-                    closest_light = light
-
-        if (closest_light and closest_light.state in [0, 1]):
-            self.set_stop_trajectory(self.next_waypoint_index, closest_light)
+        stop_line_index = traffic_waypoint.data
+        if (stop_line_index > -1):
+            self.set_stop_trajectory(self.next_waypoint_index, stop_line_index)
             #rospy.logerr("stop_trajectory: %s\n ", self.stop_trajectory)
         else:  
             self.stop_trajectory = None
