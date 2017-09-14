@@ -3,7 +3,7 @@
 A script for image annotation with bounding boxes of traffic lights. It saves the results of manual annotation as a .json file
 
 ## Dependencies
-The script was tested with Python 3.6.2
+The script was tested with Python 3.6.2 and OpenCV 3.1.0
 ```
 OpenCV
 NumPy
@@ -19,12 +19,14 @@ To run the script you have to specify an input directory with images and, option
 ```
 ## How to use
 
-1. Run the app
-2. Draw a rectangle you'd like to lable as a traffic light. Feel free to redraw it on this step
-3. Press ESC
-4. Press 1 - to mark it as red, 2 - yellow, 3 - green. If not specified (or other key was pressed), nothing will be added to the annotations. You can use it to redraw the bounding box by pressing n on the next step
-5. Press n - if you'd like to mark one more traffic light (and repeat steps 2-5), or ENTER to go to the next image
-6. If there are now traffic lights on the image, you can skip it with ESC pressed 3 times
+1. Run the app.
+2. Enter the frame number you'd like to start with and press ENTER. 1 - the first frame, 2 - the second, and so on. It can be useful if you'd like to continue labeling process. An image will appear.
+3. Draw a rectangle you'd like to lable as a traffic light from top left corner. Move your mouse with left button pressed.  Feel free to redraw it on this step.
+4. Press ESC.
+5. Press 1 - to mark it as red, 2 - yellow, 3 - green.
+6. Press "n" - if you'd like to mark one more traffic light (and repeat steps 3-6) on the image, "r" - to label this image again (e.q. in case of incorrect labeling), "x" to exit and dump the annotation file or ENTER to go to the next image
+
+**Advice:** Practice with the script using a folder with small amount of images before start labeling the main dataset. If you use "x" during labeling to save and exit, please, merge your annotation .json files on your own.
 
 ## How to deal with the results
 
@@ -38,9 +40,8 @@ with open('annotation.json', 'r') as f:
 for img in data:
 	print("Filename:", img["filename"])
 	for tl in img["traffic_lights"]:
-		print("\tColor: ", tl["color"])
-		print("\tBounding box: ", tl["bbox"])
-
+		print("\tColor: ", tl["yolo"][0])
+		print("\tBounding box: ", tl["yolo"][1:])
 ```
 
 ## Known issues
