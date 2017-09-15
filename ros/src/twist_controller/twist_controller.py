@@ -23,10 +23,9 @@ class Controller(object):
 
         self.brake_tourque_const = (vehicle_mass + fuel_capacity * GAS_DENSITY) * wheel_radius
         self.current_dbw_enabled = False
-        min_speed = 0. #??
-        yaw_params = [wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle]
+        yaw_params = [wheel_base, steer_ratio, max_lat_accel, max_steer_angle]
         self.yaw_controller = YawController(*yaw_params)
-        self.linear_pid = PID(0.9, 0.0008, 0.06, decel_limit, accel_limit)
+        self.linear_pid = PID(0.9, 0.0005, 0.07, decel_limit, accel_limit)
         self.tau_throttle = 0.2
         self.ts_throttle = 0.1
         self.low_pass_filter_throttle = LowPassFilter(self.tau_throttle, self.ts_throttle)

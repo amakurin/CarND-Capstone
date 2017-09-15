@@ -12,7 +12,7 @@ import math
 import cv2
 import yaml
 
-STATE_COUNT_THRESHOLD = 1
+STATE_COUNT_THRESHOLD = 3
 
 TRAFFIC_LIGHT_DISTANCE = 80.0 # The maximum distance to investigate a traffic light
 
@@ -24,6 +24,7 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+        self.stop_line_positions = []
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -67,8 +68,24 @@ class TLDetector(object):
     def waypoints_cb(self, lane):
         self.waypoints = lane.waypoints
 
+    def find_stop_line_position(self, light):
+        stop_line_positions = self.config['light_positions']
+        min_distance = 100000
+        result = None
+        light_pos = light.pose.pose.position
+        for pos in stop_line_positions:
+            distance = self.euclidean_distance_2d(pos, light_pos)
+            if (distance< min_distance):
+                min_distance = distance
+                result = pos
+        return result
+
     def traffic_cb(self, msg):
-        self.lights = msg.lights
+        if self.lights != msg.lights:
+            self.stop_line_positions = []
+            for light in msg.lights:
+                self.stop_line_positions.append(self.find_stop_line_position(light))
+            self.lights = msg.lights
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -182,33 +199,35 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
         light = None
+        stop_line_position = None
         light_wp = -1
         if(self.pose and self.waypoints and self.next_wp):
             #[alexm]NOTE: first find closest light to next wp
             #[alexm]NOTE: this is simple (WRONG) version. Actually we should select all lights ahead that in range. 
             min_distance = TRAFFIC_LIGHT_DISTANCE
-            next_pose = self.waypoints[self.next_wp].pose.pose
-            for current_light in self.lights:
+            waypoints_size = len(self.waypoints)
+            next_pose = self.waypoints[min(self.next_wp, waypoints_size-1)].pose.pose
+            for light_index in range(len(self.lights)):
+                current_light = self.lights[light_index]
                 light_position = current_light.pose.pose.position
                 distance = self.euclidean_distance_2d(next_pose.position, light_position)
                 if (distance < min_distance) and self.is_ahead(next_pose, light_position):
                     min_distance = distance
                     light = current_light
+                    stop_line_position = self.get_stop_line_position(light_index)
             
             #[alexm]NOTE: next if light was found, try to find it on path ahead
             if light:
-                stop_line_position = self.get_stop_line_position(light)
                 #rospy.logerr("has light: %s\n ", stop_line_position)
-                current_position = self.waypoints[self.next_wp].pose.pose.position
+                current_position = next_pose.position
                 min_distance = TRAFFIC_LIGHT_DISTANCE 
                 total_distance = 0
-                waypoints_size = len(self.waypoints)
-                for i in range(self.next_wp, waypoints_size+1):
+                for i in range(self.next_wp, waypoints_size):
                     wp_pose = self.waypoints[i].pose.pose
                     distance = self.euclidean_distance_2d(wp_pose.position, stop_line_position)                                
                     if (distance < min_distance) and self.is_ahead(wp_pose, stop_line_position):
                         min_distance = distance
-                        light_wp = max(i-1, 0)
+                        light_wp = max(i - 1, 0)
                     if (i+1 < waypoints_size):
                         total_distance += self.euclidean_distance_2d(wp_pose.position, self.waypoints[i+1].pose.pose.position)
                         if total_distance > TRAFFIC_LIGHT_DISTANCE:
@@ -219,17 +238,9 @@ class TLDetector(object):
         #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
-    def get_stop_line_position(self, light):
-        stop_line_positions = self.config['light_positions']
-        min_distance = 100000
-        result = None
-        light_pos = light.pose.pose.position
-        for pos in stop_line_positions:
-            distance = self.euclidean_distance_2d(pos, light_pos)
-            if (distance< min_distance):
-                min_distance = distance
-                result = pos
-        return result
+    def get_stop_line_position(self, light_index):
+        return self.stop_line_positions[light_index]
+
 
     def is_ahead(self, origin_pose, test_position):
         test_x = self.get_x(test_position)

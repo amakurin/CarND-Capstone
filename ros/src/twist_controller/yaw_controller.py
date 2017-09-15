@@ -3,10 +3,10 @@ from pid import PID
 from lowpass import LowPassFilter
 
 class YawController(object):
-    def __init__(self, wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle):
+    def __init__(self, wheel_base, steer_ratio, max_lat_accel, max_steer_angle):
         self.wheel_base = wheel_base
         self.steer_ratio = steer_ratio
-        self.min_speed = min_speed
+        self.min_speed = 5
         self.max_lat_accel = max_lat_accel
         self.previous_dbw_enabled = False
         self.min_angle = -max_steer_angle
@@ -17,7 +17,7 @@ class YawController(object):
         self.low_pass_filter = LowPassFilter(self.tau, self.ts)
 
     def get_angle(self, radius, current_velocity):
-         angle = current_velocity * math.atan(self.wheel_base / radius) * self.steer_ratio
+         angle = math.atan(self.wheel_base / radius) * self.steer_ratio
          return max(self.min_angle, min(self.max_angle, angle))
 
     def get_steering_calculated(self, linear_velocity, angular_velocity, current_velocity):
