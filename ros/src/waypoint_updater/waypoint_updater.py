@@ -173,7 +173,7 @@ class WaypointUpdater(object):
         if (stop_line_index > -1):
             self.set_stop_trajectory(self.next_waypoint_index, stop_line_index)
             
-            rospy.logerr("stop_trajectory: %s\n ", self.get_vels())
+            #rospy.logerr("stop_trajectory: %s\n ", self.get_vels())
         else:  
             self.stop_trajectory = None
 
