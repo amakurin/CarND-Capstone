@@ -11,6 +11,7 @@ import tf
 import math
 import cv2
 import yaml
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -28,6 +29,8 @@ class TLDetector(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
+
+        self.cascade = cv2.CascadeClassifier('./cascade.xml') # Haar cascade for TL detection
 
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and 
@@ -176,7 +179,27 @@ class TLDetector(object):
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
         #[alexm]NOTE: Temporal stub till detection\classification readiness
-        return light.state
+        box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
+        state = 2
+        for (x,y,w,h) in box:
+            w1 = int(w*0.75) # Fix aspect ratio and size
+            h1 = int(h*0.5)
+            x1 = x+int((w-w1)/2)
+            y1 = y+int((h-h1)/2)
+        
+            line = cv_image[y1:(y1+h1),int(x1+w1/2),:]
+            
+            if np.max(line[:,1]) > 245: # Green
+                state = 2
+                print("Green")
+            if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yelloow
+                state = 1
+                print("Yellow")
+            if np.max(line[:,2]) > 245: # Red
+                state = 0
+                print("Red!")
+                break  # Red has high priority, so, return it if it is seen
+        return state
 
     def create_light(self, x, y, z, yaw, state):
         light = TrafficLight()
