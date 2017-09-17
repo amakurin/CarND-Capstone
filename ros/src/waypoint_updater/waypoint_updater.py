@@ -136,7 +136,11 @@ class WaypointUpdater(object):
                 full_stop_velocity = math.sqrt(2 * MAX_DECEL * stop_distance)
                 target_velocity = self.waypoints[next_waypoint_index].twist.twist.linear.x
                 v0 = min(full_stop_velocity, target_velocity)
-                cs = CubicSpline([-10., 0., stop_distance, stop_distance+10], [v0, v0, 0., 0.])
+                cs = None 
+                if stop_line_index > next_waypoint_index:
+                    cs = CubicSpline([-10., 0., stop_distance, stop_distance+10], [v0, v0, 0., 0.])
+                else:     
+                    cs = CubicSpline([-20., -10., 0, 10], [v0, v0, 0., 0.])
                 distance = 0
                 wps = []
                 final_index = min(next_waypoint_index+LOOKAHEAD_WPS, len(self.waypoints))
