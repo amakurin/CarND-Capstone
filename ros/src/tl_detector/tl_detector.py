@@ -186,19 +186,18 @@ class TLDetector(object):
             h1 = int(h*0.5)
             x1 = x+int((w-w1)/2)
             y1 = y+int((h-h1)/2)
-        
-            line = cv_image[y1:(y1+h1),int(x1+w1/2),:]
-            
+            dh=int(h1*0.05)
+            line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
+            if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yellow
+                state = 1
+                continue
             if np.max(line[:,1]) > 245: # Green
                 state = 2
-                print("Green")
-            if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yelloow
-                state = 1
-                print("Yellow")
+                continue
             if np.max(line[:,2]) > 245: # Red
                 state = 0
-                print("Red!")
                 break  # Red has high priority, so, return it if it is seen
+        print(state)
         return state
 
     def create_light(self, x, y, z, yaw, state):
