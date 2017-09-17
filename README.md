@@ -25,7 +25,7 @@ Instruction of setting up Udacity VM can be found [here](https://classroom.udaci
 
 **NO MATTER HOW DO YOU SETUP VM**
 
-* Download the [Udacity Simulator](https://github.com/udacity/self-driving-car-sim/releases/tag/v0.1).
+* Download the [Udacity Simulator](https://github.com/udacity/CarND-Capstone/releases/tag/v1.2).
 
 **WARN:** Simulator can run on VM but it'll be extremely slow. Solution is to download version for your HOST OS (not the guest one used for VM) and setup port forwarding to VM.
 
@@ -45,12 +45,12 @@ Instruction of setting up Udacity VM can be found [here](https://classroom.udaci
 
 1. Clone the project repository
 ```bash
-git clone https://github.com/udacity/carnd_capstone.git
+git clone https://github.com/udacity/CarND-Capstone.git
 ```
 
 2. Install python dependencies
 ```bash
-cd carnd_capstone
+cd CarND-Capstone
 pip install -r requirements.txt
 ```
 3. Make and run styx
@@ -63,4 +63,19 @@ roslaunch launch/styx.launch
 
 4. Run the simulator **DURING** 20sec after starting styx or it'll die on socket timeout
 
+### Real world testing
+1. Download [training bag](https://drive.google.com/file/d/0B2_h37bMVw3iYkdJTlRSUlJIamM/view?usp=sharing) that was recorded on the Udacity self-driving car
+2. Unzip the file
+```bash
+unzip traffic_light_bag_files.zip
+```
+3. Play the bag file
+```bash
+rosbag play -l traffic_light_bag_files/loop_with_traffic_light.bag
+```
+4. Launch your project in site mode
+```bash
+cd CarND-Capstone/ros
+roslaunch launch/site.launch
+```
 

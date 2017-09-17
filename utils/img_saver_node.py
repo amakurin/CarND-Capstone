@@ -19,7 +19,7 @@ def img_save(img):
 
 def img_listener():
     rospy.init_node('img_saver', anonymous=True)
-    rospy.Subscriber('/camera/image_raw', Image, img_save)
+    rospy.Subscriber('/image_color', Image, img_save)
     rospy.spin()
 
 

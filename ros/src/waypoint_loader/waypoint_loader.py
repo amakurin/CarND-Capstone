@@ -49,7 +49,8 @@ class WaypointLoader(object):
                 p.pose.pose.position.x = float(wp['x'])
                 p.pose.pose.position.y = float(wp['y'])
                 p.pose.pose.position.z = float(wp['z'])
-                q = self.quaternion_from_yaw(float(wp['yaw']))
+                #q = self.quaternion_from_yaw(float(wp['yaw']))
+                q = self.quaternion_from_yaw(math.radians(float(wp['yaw'])))
                 p.pose.pose.orientation = Quaternion(*q)
                 p.twist.twist.linear.x = float(self.velocity*0.27778)
 
@@ -73,12 +74,14 @@ class WaypointLoader(object):
 
     def publish(self, waypoints):
         rate = rospy.Rate(1)
-        while not rospy.is_shutdown():
+        published = 0
+        while (not rospy.is_shutdown()) and published < 5:            
             lane = Lane()
             lane.header.frame_id = '/world'
             lane.header.stamp = rospy.Time(0)
             lane.waypoints = waypoints
             self.pub.publish(lane)
+            published += 1
             rate.sleep()
 
 

@@ -55,6 +55,9 @@ class DBWNode(object):
 
         # TODO: Create `TwistController` object
         params = {
+            'vehicle_mass'      : vehicle_mass,
+            'fuel_capacity'     : fuel_capacity,
+            'brake_deadband'    : brake_deadband,
             'decel_limit'       : decel_limit,
             'accel_limit'       : accel_limit,
             'wheel_radius'      : wheel_radius,
@@ -69,10 +72,9 @@ class DBWNode(object):
         self.current_setpoint = None
         self.current_velocity = None
 
-        # TODO: Subscribe to all the topics you need to
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
-        rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
-        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
+        rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb, queue_size=1)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
 
         self.loop()
 
@@ -87,12 +89,6 @@ class DBWNode(object):
                 linear_current      = self.current_velocity.twist.linear.x;
                 angular_current     =  self.current_velocity.twist.angular.z;
                 throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, angular_current, self.dbw_enabled)
-                
-                #if linear_setpoint<0.01:
-                #    rospy.logerr("ZERO VEL!!:: thro=%s brake=%s", throttle, brake)
-                #else:
-                #    rospy.logerr("----:: lin=%s ang=%s \ncur=%s thro=%s", linear_setpoint, angular_setpoint, linear_current, throttle)
-                
                 if self.dbw_enabled:
                     self.publish(throttle, brake, steering)
             rate.sleep()
