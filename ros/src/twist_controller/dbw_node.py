@@ -5,7 +5,8 @@ from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
 import math
-
+from styx_msgs.msg import Lane, Waypoint
+from geometry_msgs.msg import PoseStamped, Pose
 from twist_controller import Controller
 
 '''
@@ -71,12 +72,14 @@ class DBWNode(object):
         self.dbw_enabled = False
         self.current_setpoint = None
         self.current_velocity = None
-
+        self.final_waypoints = None
+        self.current_pose = None
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
-
+        rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb)
+        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb)
         self.loop()
 
     def loop(self):
@@ -84,12 +87,15 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
-            if (self.current_velocity is not None) and (self.current_setpoint is not None):
-                linear_setpoint     = self.current_setpoint.twist.linear.x;            
-                angular_setpoint    = self.current_setpoint.twist.angular.z;
-                linear_current      = self.current_velocity.twist.linear.x;
-                angular_current     =  self.current_velocity.twist.angular.z;
-                throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, angular_current, self.dbw_enabled)
+            if (self.final_waypoints is not None) and (self.current_pose is not None) and (self.current_velocity is not None) and (self.current_setpoint is not None):
+                final_waypoint1 = self.final_waypoints.waypoints[0]
+                final_waypoint2 = self.final_waypoints.waypoints[1]
+                current_location    = self.current_pose.pose.position
+                linear_setpoint     = self.current_setpoint.twist.linear.x
+                angular_setpoint    = self.current_setpoint.twist.angular.z
+                linear_current      = self.current_velocity.twist.linear.x
+                angular_current     = self.current_velocity.twist.angular.z
+                throttle, brake, steering = self.controller.control(linear_setpoint, angular_setpoint, linear_current, angular_current, self.dbw_enabled, final_waypoint1, final_waypoint2, current_location)
                 if self.dbw_enabled:
                     self.publish(throttle, brake, steering)
             rate.sleep()
@@ -126,5 +132,12 @@ class DBWNode(object):
         self.current_velocity = msg
         pass
 
+    def final_waypoints_cb(self, msg):
+        self.final_waypoints = msg
+        pass
+
+    def current_pose_cb(self, msg):
+        self.current_pose = msg
+        pass
 if __name__ == '__main__':
     DBWNode()

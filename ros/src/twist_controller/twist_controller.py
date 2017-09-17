@@ -3,6 +3,8 @@ from pid import PID
 from lowpass import LowPassFilter
 import math
 import rospy
+from styx_msgs.msg import Lane, Waypoint
+from geometry_msgs.msg import PoseStamped, Pose
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -41,7 +43,7 @@ class Controller(object):
         self.previous_time = current_time
         return sample_step
 
-    def control(self, linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity, angular_current, dbw_enabled):
+    def control(self, linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity, angular_current, dbw_enabled, final_waypoint1, final_waypoint2, current_location):
         if (not self.current_dbw_enabled) and dbw_enabled:
             self.current_dbw_enabled = True
             self.linear_pid.reset()
@@ -69,6 +71,7 @@ class Controller(object):
         #[alexm]::NOTE this lowpass leads to sending both throttle and brake nonzero. Maybe it is better to filter velocity_correction
         #brake = self.low_pass_filter_brake.filt(brake)
         #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
+        #steering = self.yaw_controller.get_steering_pid_cte(final_waypoint1, final_waypoint2, current_location, dbw_enabled)
         
         #[alexm]::NOTE changed static 10.0 to linear_current_velocity and surprisingly car behave better on low speeds. Need to look close to formulas...
         #PID also improves the same with the factor
