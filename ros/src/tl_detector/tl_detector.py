@@ -11,6 +11,7 @@ import tf
 import math
 import cv2
 import yaml
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -24,10 +25,12 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
-        self.stop_line_positions = []
+        self.stop_line_positions = None
 
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
+        rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
+
+        self.cascade = cv2.CascadeClassifier('./cascade.xml') # Haar cascade for TL detection
 
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and 
@@ -38,9 +41,9 @@ class TLDetector(object):
         '''
         #[alexm]NOTE: we should rely on this topic's data except state of the light 
         #[alexm]NOTE: according to this: https://carnd.slack.com/messages/C6NVDVAQ3/convo/C6NVDVAQ3-1504625321.000063/
-        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        rospy.Subscriber('/image_color', Image, self.image_cb)
-        rospy.Subscriber('/next_wp', Int32, self.next_wp_cb)
+        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
+        rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
+        rospy.Subscriber('/next_wp', Int32, self.next_wp_cb, queue_size=1)
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
@@ -176,7 +179,26 @@ class TLDetector(object):
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
         #[alexm]NOTE: Temporal stub till detection\classification readiness
-        return light.state
+        box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
+        state = TrafficLight.UNKNOWN
+        for (x,y,w,h) in box:
+            w1 = int(w*0.75) # Fix aspect ratio and size
+            h1 = int(h*0.5)
+            x1 = x+int((w-w1)/2)
+            y1 = y+int((h-h1)/2)
+            dh=int(h1*0.05)
+            line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
+            if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yellow
+                state = TrafficLight.YELLOW
+                continue
+            if np.max(line[:,1]) > 245: # Green
+                state = TrafficLight.GREEN
+                continue
+            if np.max(line[:,2]) > 245: # Red
+                state = TrafficLight.RED
+                break  # Red has high priority, so, return it if it is seen
+        #print(state)
+        return state
 
     def create_light(self, x, y, z, yaw, state):
         light = TrafficLight()
@@ -201,7 +223,7 @@ class TLDetector(object):
         light = None
         stop_line_position = None
         light_wp = -1
-        if(self.pose and self.waypoints and self.next_wp):
+        if(self.pose and self.waypoints and self.next_wp and self.stop_line_positions):
             #[alexm]NOTE: first find closest light to next wp
             #[alexm]NOTE: this is simple (WRONG) version. Actually we should select all lights ahead that in range. 
             min_distance = TRAFFIC_LIGHT_DISTANCE

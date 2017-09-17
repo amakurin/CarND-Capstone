@@ -15,7 +15,7 @@ class Controller(object):
         vehicle_mass    = kwargs['vehicle_mass']
         fuel_capacity   = kwargs['fuel_capacity']
         self.brake_deadband  = kwargs['brake_deadband']
-        decel_limit 	= kwargs['decel_limit']
+        self.decel_limit 	= kwargs['decel_limit']
         accel_limit 	= kwargs['accel_limit']
         wheel_radius 	= kwargs['wheel_radius']
         wheel_base 		= kwargs['wheel_base']
@@ -27,13 +27,10 @@ class Controller(object):
         self.current_dbw_enabled = False
         yaw_params = [wheel_base, steer_ratio, max_lat_accel, max_steer_angle]
         self.yaw_controller = YawController(*yaw_params)
-        self.linear_pid = PID(0.9, 0.0005, 0.07, decel_limit, accel_limit)
-        self.tau_throttle = 0.2
-        self.ts_throttle = 0.1
-        self.low_pass_filter_throttle = LowPassFilter(self.tau_throttle, self.ts_throttle)
-        self.tau_brake = 0.2
-        self.ts_brake = 0.1
-        self.low_pass_filter_brake = LowPassFilter(self.tau_brake, self.ts_brake)
+        self.linear_pid = PID(0.9, 0.0005, 0.07, self.decel_limit, accel_limit)
+        self.tau_correction = 0.2
+        self.ts_correction = 0.1
+        self.low_pass_filter_correction = LowPassFilter(self.tau_correction, self.ts_correction)
         self.previous_time = None
         pass
 
@@ -54,25 +51,23 @@ class Controller(object):
 
         sample_step = self.update_sample_step()
 
+        velocity_correction = self.linear_pid.step(linear_velocity_error, sample_step)
+        velocity_correction = self.low_pass_filter_correction.filt(velocity_correction)
         if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 0.5:
-            brake = self.brake_tourque_const
+            velocity_correction = self.decel_limit
+        throttle = velocity_correction
+        brake = 0.
+        if throttle < 0.:
+            decel = abs(throttle)
+            #[alexm]NOTE: let engine decelerate the car if required deceleration below brake_deadband
+            brake = self.brake_tourque_const * decel if decel > self.brake_deadband else 0.
             throttle = 0.
-        else:
-            velocity_correction = self.linear_pid.step(linear_velocity_error, sample_step)
-            throttle = velocity_correction
-            brake = 0.
-            if throttle < 0:
-                decel = abs(throttle)
-                #[alexm]NOTE: let engine decelerate the car if required deceleration below brake_deadband
-                brake = self.brake_tourque_const*decel if decel > self.brake_deadband else 0.
-                throttle = 0.
-            throttle = self.low_pass_filter_throttle.filt(throttle)
         
         #[alexm]::NOTE this lowpass leads to sending both throttle and brake nonzero. Maybe it is better to filter velocity_correction
         #brake = self.low_pass_filter_brake.filt(brake)
         #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
         #steering = self.yaw_controller.get_steering_pid_cte(final_waypoint1, final_waypoint2, current_location, dbw_enabled)
-        
+
         #[alexm]::NOTE changed static 10.0 to linear_current_velocity and surprisingly car behave better on low speeds. Need to look close to formulas...
         #PID also improves the same with the factor
         #moved factor into function because limits are checked in that function
