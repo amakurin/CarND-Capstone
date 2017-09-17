@@ -7,12 +7,11 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 
-save_dir = '/home/student/.ros/imgs' # EDIT Set the directory for images
+save_dir = '.' # EDIT Set the directory for images
 
 i = 0
 def img_save(img):
     global i
-    print ("img_save")
     img.encoding = "rgb8"
     cv_image = CvBridge().imgmsg_to_cv2(img, "bgr8")
     cv2.imwrite(save_dir+'/img_'+'%06d'%i+'.png', cv_image)
@@ -21,7 +20,6 @@ def img_save(img):
 def img_listener():
     rospy.init_node('img_saver', anonymous=True)
     rospy.Subscriber('/image_color', Image, img_save)
-    print ("Subscribed")
     rospy.spin()
 
 
