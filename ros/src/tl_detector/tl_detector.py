@@ -25,7 +25,7 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
-        self.stop_line_positions = []
+        self.stop_line_positions = None
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
@@ -180,7 +180,7 @@ class TLDetector(object):
         #return self.light_classifier.get_classification(cv_image)
         #[alexm]NOTE: Temporal stub till detection\classification readiness
         box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
-        state = 2
+        state = TrafficLight.UNKNOWN
         for (x,y,w,h) in box:
             w1 = int(w*0.75) # Fix aspect ratio and size
             h1 = int(h*0.5)
@@ -189,15 +189,15 @@ class TLDetector(object):
             dh=int(h1*0.05)
             line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
             if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yellow
-                state = 1
+                state = TrafficLight.YELLOW
                 continue
             if np.max(line[:,1]) > 245: # Green
-                state = 2
+                state = TrafficLight.GREEN
                 continue
             if np.max(line[:,2]) > 245: # Red
-                state = 0
+                state = TrafficLight.RED
                 break  # Red has high priority, so, return it if it is seen
-        print(state)
+        #print(state)
         return state
 
     def create_light(self, x, y, z, yaw, state):
@@ -223,7 +223,7 @@ class TLDetector(object):
         light = None
         stop_line_position = None
         light_wp = -1
-        if(self.pose and self.waypoints and self.next_wp):
+        if(self.pose and self.waypoints and self.next_wp and self.stop_line_positions):
             #[alexm]NOTE: first find closest light to next wp
             #[alexm]NOTE: this is simple (WRONG) version. Actually we should select all lights ahead that in range. 
             min_distance = TRAFFIC_LIGHT_DISTANCE
