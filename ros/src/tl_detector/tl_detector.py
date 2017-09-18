@@ -13,6 +13,31 @@ import cv2
 import yaml
 import numpy as np
 from scipy import spatial
+import os
+import glob
+import time
+import itertools
+import scipy.misc
+import numpy as np
+import cv2
+import copy
+import math
+import matplotlib.image as mpimg
+
+from sklearn.svm import LinearSVC, SVC
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.feature_selection import SelectFromModel
+from sklearn.externals import joblib
+from sklearn.pipeline import Pipeline
+from scipy.ndimage.measurements import label
+from scipy import ndimage as ndi
+from skimage.feature import hog, blob_doh, peak_local_max
+from skimage.morphology import watershed, disk
+from skimage.filters import rank, gaussian_filter
+from skimage.util import img_as_ubyte
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -174,6 +199,99 @@ class TLDetector(object):
 
         return (x, y)
 
+    # Define a function to return HOG features and visualization
+    def get_hog_features(img, orient, pix_per_cell, cell_per_block,
+                         vis=False, feature_vec=True):
+        # Call with two outputs if vis==True
+        if vis == True:
+            features, hog_image = hog(img, orientations=orient,
+                                      pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                      cells_per_block=(cell_per_block, cell_per_block),
+                                      transform_sqrt=True,
+                                      visualise=vis, feature_vector=feature_vec)
+            return features, hog_image
+        # Otherwise call with one output
+        else:
+            features = hog(img, orientations=orient,
+                           pixels_per_cell=(pix_per_cell, pix_per_cell),
+                           cells_per_block=(cell_per_block, cell_per_block),
+                           transform_sqrt=True,
+                           visualise=vis, feature_vector=feature_vec)
+            return features
+
+    # Define a function to compute binned color features
+    def bin_spatial(img, size=(32, 32)):
+        # Use cv2.resize().ravel() to create the feature vector
+        features = cv2.resize(img, size).ravel()
+        # Return the feature vector
+        return features
+
+    # Define a function to compute color histogram features
+    # NEED TO CHANGE bins_range if reading .png files with mpimg!
+    def color_hist(img, nbins=32, bins_range=(0, 256)):
+        # Compute the histogram of the color channels separately
+        channel1_hist = np.histogram(img[:, :, 0], bins=nbins, range=bins_range)
+        channel2_hist = np.histogram(img[:, :, 1], bins=nbins, range=bins_range)
+        channel3_hist = np.histogram(img[:, :, 2], bins=nbins, range=bins_range)
+        # Concatenate the histograms into a single feature vector
+        hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+        # Return the individual histograms, bin_centers and feature vector
+        return hist_features
+
+    # Define a function to extract features from a list of images
+    # Have this function call bin_spatial() and color_hist()
+    def extract_features(img, color_space='RGB', spatial_size=(32, 32),
+                         hist_bins=32, orient=9,
+                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                         spatial_feat=True, hist_feat=True, hog_feat=True, resize=False):
+        # Create a list to append feature vectors to
+        features = []
+        # Iterate through the list of images
+        file_features = []
+        # Read in each one by one
+        image = img
+        if resize == True:
+            image = cv2.resize(image, (15, 30))
+        # apply color conversion if other than 'RGB'
+        if color_space != 'RGB':
+            if color_space == 'HSV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+            elif color_space == 'LUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
+            elif color_space == 'HLS':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+            elif color_space == 'YUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+            elif color_space == 'YCrCb':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+        else:
+            feature_image = np.copy(image)
+
+        if spatial_feat == True:
+            spatial_features = bin_spatial(feature_image, size=spatial_size)
+            file_features.append(spatial_features)
+        if hist_feat == True:
+            # Apply color_hist()
+            hist_features = color_hist(feature_image, nbins=hist_bins)
+            file_features.append(hist_features)
+        if hog_feat == True:
+            # Call get_hog_features() with vis=False, feature_vec=True
+            if hog_channel == 'ALL':
+                hog_features = []
+                for channel in range(feature_image.shape[2]):
+                    hog_features.append(get_hog_features(feature_image[:, :, channel],
+                                                         orient, pix_per_cell, cell_per_block,
+                                                         vis=False, feature_vec=True))
+                hog_features = np.ravel(hog_features)
+            else:
+                hog_features = get_hog_features(feature_image[:, :, hog_channel], orient,
+                                                pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+            # Append the new feature vector to the features list
+            file_features.append(hog_features)
+        features.append(np.concatenate(file_features))
+    # Return list of feature vectors
+    return features
+
     def get_light_state(self, light):
         """Determines the current color of the traffic light
 
@@ -193,6 +311,27 @@ class TLDetector(object):
         x, y = self.project_to_image_plane(light.pose.pose.position)
 
         #TODO use light location to zoom in on traffic light in image
+        ###############################
+        # load model from pickle file
+        ###############################
+        data = joblib.load('models/simimg.pkl')
+        # data = joblib.load('models/clf_9869.pkl')
+        # svc = data['model']
+        clf = data['model']
+
+        config = data['config']
+        color_space = config['color_space']
+        orient = config['orient']
+        pix_per_cell = config['pix_per_cell']
+        cell_per_block = config['cell_per_block']
+        hog_channel = config['hog_channel']
+        spatial_size = config['spatial_size']
+        hist_bins = config['hist_bins']
+        spatial_feat = config['spatial_feat']
+        hist_feat = config['hist_feat']
+        hog_feat = config['hog_feat']
+        resize = config['resize']
+
 
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
@@ -200,19 +339,28 @@ class TLDetector(object):
         box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
         state = TrafficLight.UNKNOWN
         for (x,y,w,h) in box:
-            w1 = int(w*0.75) # Fix aspect ratio and size
-            h1 = int(h*0.5)
-            x1 = x+int((w-w1)/2)
-            y1 = y+int((h-h1)/2)
-            dh=int(h1*0.05)
-            line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
-            if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yellow
+            #w1 = int(w*0.75) # Fix aspect ratio and size
+            #h1 = int(h*0.5)
+            #x1 = x+int((w-w1)/2)
+            #y1 = y+int((h-h1)/2)
+            #dh=int(h1*0.05)
+            #line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
+            detectedlight = cv_image[y:(y+h), x:(x+w)]
+            classifylight_features = extract_features(detectedlight, color_space=color_space,
+                                                      spatial_size=spatial_size, hist_bins=hist_bins,
+                                                      orient=orient, pix_per_cell=pix_per_cell,
+                                                      cell_per_block=cell_per_block,
+                                                      hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                                      hist_feat=hist_feat, hog_feat=hog_feat, resize=True)
+            classifydata = np.vstack((classifylight_features)).astype(np.float64)
+            predictedclass = clf.predict(classifydata)
+            if predictedclass == 1
                 state = TrafficLight.YELLOW
                 continue
-            if np.max(line[:,1]) > 245: # Green
+            elif predictedclass == 2
                 state = TrafficLight.GREEN
                 continue
-            if np.max(line[:,2]) > 245: # Red
+            elif predictedclass == 0
                 state = TrafficLight.RED
                 break  # Red has high priority, so, return it if it is seen
         #print(state)
