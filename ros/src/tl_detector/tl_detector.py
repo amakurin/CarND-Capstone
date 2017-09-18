@@ -12,10 +12,11 @@ import math
 import cv2
 import yaml
 import numpy as np
+from scipy import spatial
 
 STATE_COUNT_THRESHOLD = 3
 
-TRAFFIC_LIGHT_DISTANCE = 80.0 # The maximum distance to investigate a traffic light
+MAX_DECEL = 1.
 
 class TLDetector(object):
     def __init__(self):
@@ -23,9 +24,10 @@ class TLDetector(object):
 
         self.pose = None
         self.waypoints = None
+        self.KDTree = None
         self.camera_image = None
         self.lights = []
-        self.stop_line_positions = None
+        self.stop_lines = None
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
@@ -67,9 +69,15 @@ class TLDetector(object):
 
     def pose_cb(self, msg):
         self.pose = msg
-
+            
     def waypoints_cb(self, lane):
-        self.waypoints = lane.waypoints
+        if self.waypoints != lane.waypoints:
+            data = []
+            for wp in lane.waypoints:
+                data.append((wp.pose.pose.position.x, wp.pose.pose.position.y))
+            self.KDTree = spatial.KDTree(data)
+            self.waypoints = lane.waypoints
+            self.stop_lines = None
 
     def find_stop_line_position(self, light):
         stop_line_positions = self.config['light_positions']
@@ -84,11 +92,21 @@ class TLDetector(object):
         return result
 
     def traffic_cb(self, msg):
-        if self.lights != msg.lights:
-            self.stop_line_positions = []
+        if not self.stop_lines and self.KDTree:
+            stop_lines = []
             for light in msg.lights:
-                self.stop_line_positions.append(self.find_stop_line_position(light))
+                # find corresponding stop line position from config
+                stop_line_pos = self.find_stop_line_position(light)
+                # find corresponding waypoint indicex
+                closest_index = self.KDTree.query(np.array([stop_line_pos]))[1][0]
+                closest_wp = self.waypoints[closest_index]
+                if not self.is_ahead(closest_wp.pose.pose, stop_line_pos):
+                    closest_index = max(closest_index - 1, 0)
+                # add index to list
+                stop_lines.append(closest_index)
+            # update lights and stop line waypoint indices
             self.lights = msg.lights
+            self.stop_lines = stop_lines
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -221,48 +239,26 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
         light = None
-        stop_line_position = None
         light_wp = -1
-        if(self.pose and self.waypoints and self.next_wp and self.stop_line_positions):
-            #[alexm]NOTE: first find closest light to next wp
-            #[alexm]NOTE: this is simple (WRONG) version. Actually we should select all lights ahead that in range. 
-            min_distance = TRAFFIC_LIGHT_DISTANCE
-            waypoints_size = len(self.waypoints)
-            next_pose = self.waypoints[min(self.next_wp, waypoints_size-1)].pose.pose
-            for light_index in range(len(self.lights)):
-                current_light = self.lights[light_index]
-                light_position = current_light.pose.pose.position
-                distance = self.euclidean_distance_2d(next_pose.position, light_position)
-                if (distance < min_distance) and self.is_ahead(next_pose, light_position):
-                    min_distance = distance
-                    light = current_light
-                    stop_line_position = self.get_stop_line_position(light_index)
-            
-            #[alexm]NOTE: next if light was found, try to find it on path ahead
-            if light:
-                #rospy.logerr("has light: %s\n ", stop_line_position)
-                current_position = next_pose.position
-                min_distance = TRAFFIC_LIGHT_DISTANCE 
-                total_distance = 0
-                for i in range(self.next_wp, waypoints_size):
-                    wp_pose = self.waypoints[i].pose.pose
-                    distance = self.euclidean_distance_2d(wp_pose.position, stop_line_position)                                
-                    if (distance < min_distance) and self.is_ahead(wp_pose, stop_line_position):
-                        min_distance = distance
-                        light_wp = max(i - 1, 0)
-                    if (i+1 < waypoints_size):
-                        total_distance += self.euclidean_distance_2d(wp_pose.position, self.waypoints[i+1].pose.pose.position)
-                        if total_distance > TRAFFIC_LIGHT_DISTANCE:
-                            break;
+
+        if(self.waypoints and self.next_wp and self.stop_lines):
+            next_wp = self.waypoints[min(self.next_wp, len(self.waypoints)-1)]
+            target_velocity = next_wp.twist.twist.linear.x
+            search_distance = target_velocity * target_velocity / 2 / MAX_DECEL
+            min_distance = search_distance
+            for i in range(len(self.stop_lines)):
+                stop_line_wp_index = self.stop_lines[i]
+                if stop_line_wp_index >= self.next_wp:
+                    stop_line_wp = self.waypoints[stop_line_wp_index]
+                    distance = self.euclidean_distance_2d(next_wp.pose.pose.position, stop_line_wp.pose.pose.position)
+                    if (distance < min_distance):
+                        light_wp = stop_line_wp_index
+                        light = self.lights[i]
         if light_wp > -1:
             state = self.get_light_state(light)
             return light_wp, state
         #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
-
-    def get_stop_line_position(self, light_index):
-        return self.stop_line_positions[light_index]
-
 
     def is_ahead(self, origin_pose, test_position):
         test_x = self.get_x(test_position)

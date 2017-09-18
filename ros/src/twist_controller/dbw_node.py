@@ -54,7 +54,6 @@ class DBWNode(object):
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd',
                                          BrakeCmd, queue_size=1)
 
-        # TODO: Create `TwistController` object
         params = {
             'vehicle_mass'      : vehicle_mass,
             'fuel_capacity'     : fuel_capacity,
@@ -74,7 +73,7 @@ class DBWNode(object):
         self.current_velocity = None
         self.final_waypoints = None
         self.current_pose = None
-        # TODO: Subscribe to all the topics you need to
+
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb, queue_size=1)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
@@ -85,11 +84,12 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(20) # 50Hz
         while not rospy.is_shutdown():
-            # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
-            if (self.final_waypoints is not None) and (self.current_pose is not None) and (self.current_velocity is not None) and (self.current_setpoint is not None):
-                final_waypoint1 = self.final_waypoints.waypoints[0]
-                final_waypoint2 = self.final_waypoints.waypoints[1]
+            if (self.final_waypoints is not None) and (self.current_pose is not None) \
+            and (self.current_velocity is not None) and (self.current_setpoint is not None):
+                fwp_size = len(self.final_waypoints.waypoints) 
+                final_waypoint1 = self.final_waypoints.waypoints[0] if fwp_size>0 else None
+                final_waypoint2 = self.final_waypoints.waypoints[1] if fwp_size>1 else None
                 current_location    = self.current_pose.pose.position
                 linear_setpoint     = self.current_setpoint.twist.linear.x
                 angular_setpoint    = self.current_setpoint.twist.angular.z
