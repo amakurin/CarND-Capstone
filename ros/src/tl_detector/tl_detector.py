@@ -23,6 +23,7 @@ import cv2
 import copy
 import math
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 
 from sklearn.svm import LinearSVC, SVC
 from sklearn.naive_bayes import MultinomialNB
@@ -311,6 +312,7 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        #cv_imagergb = cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
 
         x, y = self.project_to_image_plane(light.pose.pose.position)
 
@@ -350,6 +352,10 @@ class TLDetector(object):
             #dh=int(h1*0.05)
             #line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
             detectedlight = cv_image[y:(y+h), x:(x+w)]
+            #cv2.namedWindow("Input")
+            #cv2.imshow("Input", detectedlight)
+            #cv2.waitKey(1)
+            #cv2.imwrite("tlight" + str(time.time()) + ".png", detectedlight)
             classifylight_features = extract_features(detectedlight, color_space=color_space,
                                                       spatial_size=spatial_size, hist_bins=hist_bins,
                                                       orient=orient, pix_per_cell=pix_per_cell,
@@ -360,15 +366,15 @@ class TLDetector(object):
             predictedclass = clf.predict(classifydata)
             if predictedclass == 1:
                 state = TrafficLight.YELLOW
-                print "Yellow Light"
+                #print "Yellow Light"
                 continue
             elif predictedclass == 2:
                 state = TrafficLight.GREEN
-                print "Green light"
+                #print "Green light"
                 continue
             elif predictedclass == 0:
                 state = TrafficLight.RED
-                print "Red Light"
+                #print "Red Light"
                 break  # Red has high priority, so, return it if it is seen
         #print(state)
         return state
