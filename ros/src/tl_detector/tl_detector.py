@@ -35,7 +35,7 @@ class TLDetector(object):
         self.cascade = cv2.CascadeClassifier('./cascade.xml') # Haar cascade for TL detection
 
         '''
-        /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and 
+        /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
         helps you acquire an accurate ground truth data source for the traffic light
         classifier by sending the current color state of all traffic lights in the
         simulator. When testing on the vehicle, the color state will not be available. You'll need to
@@ -80,7 +80,7 @@ class TLDetector(object):
             self.stop_lines = None
 
     def find_stop_line_position(self, light):
-        stop_line_positions = self.config['light_positions']
+        stop_line_positions = self.config['stop_line_positions']
         min_distance = 100000
         result = None
         light_pos = light.pose.pose.position
@@ -110,7 +110,7 @@ class TLDetector(object):
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
-            of the waypoint closest to the red light to /traffic_waypoint
+            of the waypoint closest to the red light's stop line to /traffic_waypoint
 
         Args:
             msg (Image): image from car-mounted camera
@@ -235,7 +235,7 @@ class TLDetector(object):
             location and color
 
         Returns:
-            int: index of waypoint closes to the upcoming traffic light (-1 if none exists)
+            int: index of waypoint closes to the upcoming stop line for a traffic light (-1 if none exists)
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
         light = None
