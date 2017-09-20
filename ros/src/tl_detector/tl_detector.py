@@ -320,8 +320,11 @@ class TLDetector(object):
         ###############################
         # load model from pickle file
         ###############################
-        data = joblib.load('models/simimg.pkl')
-        # data = joblib.load('models/clf_9869.pkl')
+	    # simimg = model trained on simulator images
+        # data = joblib.load('models/simimg.pkl')
+
+	    # miximg = model trained on both simulator and rosbag images
+        data = joblib.load('models/miximg.pkl')
         # svc = data['model']
         clf = data['model']
 
