@@ -13,6 +13,8 @@ import cv2
 import yaml
 import numpy as np
 from scipy import spatial
+from keras.models import load_model
+from keras.preprocessing.image import img_to_array, load_img
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -199,22 +201,35 @@ class TLDetector(object):
         #[alexm]NOTE: Temporal stub till detection\classification readiness
         box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
         state = TrafficLight.UNKNOWN
+        img_width, img_height = 150, 150
+        test_model = load_model('models/tl_state_vgg.h5')
         for (x,y,w,h) in box:
-            w1 = int(w*0.75) # Fix aspect ratio and size
-            h1 = int(h*0.5)
-            x1 = x+int((w-w1)/2)
-            y1 = y+int((h-h1)/2)
-            dh=int(h1*0.05)
-            line = cv_image[(y1+dh):(y1+h1-dh),int(x1+w1/2),:]
-            if np.max(line[:,2]) > 245 and np.max(line[:,1]) > 245: # Yellow
+            tl_img = cv_image[y:(y + h), x:(x + w)]
+            tl_img_rgb = cv2.resize(tl_img, (img_width, img_height))
+            tl_img_rgb = cv2.cvtColor(tl_img_rgb , cv2.COLOR_BGR2RGB)
+            tl_img_data = img_to_array(tl_img_rgb)
+            tl_img_data = np.expand_dims(tl_img_data, axis=0)
+            predictedclass = test_model.predict_classes(tl_img_data, verbose=False)
+            #debug
+            #cv2.putText(tl_img_rgb, str(predictedclass), (50,50),cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255))
+            #cv2.imshow("predicted:{}".format(str(predictedclass)), cv_image)
+            #cv2.waitKey(0)
+            #cv2.destroyAllWindows()
+            if int(predictedclass) == 2:
                 state = TrafficLight.YELLOW
+                print "Yellow Light"
                 continue
-            if np.max(line[:,1]) > 245: # Green
+            elif int(predictedclass) == 1:
                 state = TrafficLight.GREEN
+                print "Green light"
                 continue
-            if np.max(line[:,2]) > 245: # Red
+            elif int(predictedclass) == 3:
                 state = TrafficLight.RED
+                print "Red Light"
                 break  # Red has high priority, so, return it if it is seen
+            else:
+                state = None
+                continue
         #print(state)
         return state
 
