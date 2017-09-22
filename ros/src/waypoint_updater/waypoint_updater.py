@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import rospy
-from geometry_msgs.msg import PoseStamped 
+from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint, TrafficLight, TrafficLightArray
-from std_msgs.msg import Int32 
+from std_msgs.msg import Int32
 import math
 import copy
 import tf
@@ -36,9 +36,9 @@ class WaypointUpdater(object):
         # NOTE: supposedly comes from fusion (briged from simulator) at unknown rate
         self.current_pose = None
         self.next_waypoint_index = None
-        
+
         self.stop_trajectory = None
-        
+
         self.loop()
 
     def loop(self):
@@ -48,12 +48,12 @@ class WaypointUpdater(object):
                 lane = Lane()
                 lane.header.frame_id = self.current_pose.header.frame_id
                 lane.header.stamp = rospy.Time(0)
-                lane.waypoints = self.waypoints[self.next_waypoint_index:self.next_waypoint_index+LOOKAHEAD_WPS] 
-                
+                lane.waypoints = self.waypoints[self.next_waypoint_index:self.next_waypoint_index+LOOKAHEAD_WPS]
+
                 if (self.stop_trajectory):
                     start_index = self.stop_trajectory[0]
                     wps = self.stop_trajectory[1]
-                    shift = 0 if (start_index == self.next_waypoint_index) else (self.next_waypoint_index - start_index)
+                    shift = self.next_waypoint_index - start_index
                     for i in range(min(LOOKAHEAD_WPS, len(lane.waypoints))):
                         shifted_i = i + shift
                         lane.waypoints[i] = wps[shifted_i] if (0 <= shifted_i < len(wps)) else lane.waypoints[i]
@@ -70,8 +70,8 @@ class WaypointUpdater(object):
         min_dist = 100000
         min_ind = 0
         ind = 0
-        
-        start = 0 
+
+        start = 0
         end = len(self.waypoints)
         if (self.next_waypoint_index):
             start = max (self.next_waypoint_index - POSITION_SEARCH_RANGE, 0)
@@ -105,7 +105,7 @@ class WaypointUpdater(object):
         y = self.current_pose.pose.position.y
 
         yaw = self.current_yaw()
-        
+
         x_car_system = ((map_x-x) * math.cos(yaw) + (map_y-y) * math.sin(yaw))
         if ( x_car_system < 0. ):
             ind += 1
@@ -130,22 +130,21 @@ class WaypointUpdater(object):
             old_start = self.stop_trajectory[0]
             wps = self.stop_trajectory[1]
             self.stop_trajectory = [next_waypoint_index, wps[next_waypoint_index-old_start:]]
-        else:   
+        else:
             if (stop_line_index >= next_waypoint_index):
-                stop_distance = self.distance(self.waypoints, next_waypoint_index, stop_line_index) 
+                stop_distance = self.distance(self.waypoints, next_waypoint_index, stop_line_index)
                 full_stop_velocity = math.sqrt(2 * MAX_DECEL * stop_distance)
                 target_velocity = self.waypoints[next_waypoint_index].twist.twist.linear.x
                 v0 = min(full_stop_velocity, target_velocity)
-                cs = None 
+                cs = None
                 if stop_line_index > next_waypoint_index:
                     cs = CubicSpline([-10., 0., stop_distance, stop_distance+10], [v0, v0, 0., 0.])
-                else:     
+                else:
                     cs = CubicSpline([-20., -10., 0, 10], [v0, v0, 0., 0.])
                 distance = 0
                 wps = []
                 final_index = min(next_waypoint_index+LOOKAHEAD_WPS, len(self.waypoints))
                 for i in range(next_waypoint_index, final_index):
-                    copy.deepcopy(self.waypoints[i])
                     velocity_setpoint = cs(distance).tolist()
                     if (i > stop_line_index) or (velocity_setpoint < 0.1):
                         velocity_setpoint = 0.
@@ -177,7 +176,7 @@ class WaypointUpdater(object):
         if (stop_line_index > -1):
             self.set_stop_trajectory(self.next_waypoint_index, stop_line_index)
             #rospy.logerr("stop_trajectory: %s\n ", self.get_vels())
-        else:  
+        else:
             self.stop_trajectory = None
 
 
