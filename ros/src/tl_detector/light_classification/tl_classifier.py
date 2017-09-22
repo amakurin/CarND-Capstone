@@ -1,4 +1,5 @@
 from styx_msgs.msg import TrafficLight
+from keras.models import load_model
 
 class TLClassifier(object):
     def __init__(self):

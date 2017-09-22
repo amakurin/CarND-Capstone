@@ -12,6 +12,7 @@ import math
 import cv2
 import yaml
 import numpy as np
+import tensorflow as tensorflow
 from scipy import spatial
 from keras.models import load_model
 from keras.preprocessing.image import img_to_array, load_img
@@ -55,6 +56,10 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
+
+        self.test_model = load_model('models/tl_state_vgg.h5')
+        self.graph = tensorflow.get_default_graph()
+        
         self.listener = tf.TransformListener()
 
         self.state = TrafficLight.UNKNOWN
@@ -202,14 +207,14 @@ class TLDetector(object):
         box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
         state = TrafficLight.UNKNOWN
         img_width, img_height = 150, 150
-        test_model = load_model('models/tl_state_vgg.h5')
         for (x,y,w,h) in box:
             tl_img = cv_image[y:(y + h), x:(x + w)]
             tl_img_rgb = cv2.resize(tl_img, (img_width, img_height))
             tl_img_rgb = cv2.cvtColor(tl_img_rgb , cv2.COLOR_BGR2RGB)
             tl_img_data = img_to_array(tl_img_rgb)
             tl_img_data = np.expand_dims(tl_img_data, axis=0)
-            predictedclass = test_model.predict_classes(tl_img_data, verbose=False)
+            with self.graph.as_default():
+                predictedclass = self.test_model.predict_classes(tl_img_data, verbose=False)
             #debug
             #cv2.putText(tl_img_rgb, str(predictedclass), (50,50),cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255))
             #cv2.imshow("predicted:{}".format(str(predictedclass)), cv_image)
