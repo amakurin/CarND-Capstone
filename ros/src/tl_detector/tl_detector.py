@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Int32
-from geometry_msgs.msg import PoseStamped, Pose, Point
+from geometry_msgs.msg import PoseStamped, Pose, Point, PointStamped
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
@@ -61,7 +61,7 @@ class TLDetector(object):
         self.state_count = 0
 
         self.next_wp = None
-
+        self.save_counter = 0
         rospy.spin()
 
     def next_wp_cb(self, val):
@@ -138,7 +138,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def project_to_image_plane(self, point_in_world):
+    def project_to_image_plane(self, stamped_world_point):
         """Project point from 3D world coordinates to 2D camera image location
 
         Args:
@@ -156,21 +156,45 @@ class TLDetector(object):
         image_height = self.config['camera_info']['image_height']
 
         # get transform between pose of camera and world frame
-        trans = None
+        stamped_world_point.header.stamp = rospy.Time.now()
+        base_point = None
+
         try:
             now = rospy.Time.now()
             self.listener.waitForTransform("/base_link",
                   "/world", now, rospy.Duration(1.0))
-            (trans, rot) = self.listener.lookupTransform("/base_link",
-                  "/world", now)
+            base_point = self.listener.transformPoint("/base_link", stamped_world_point);
 
         except (tf.Exception, tf.LookupException, tf.ConnectivityException):
             rospy.logerr("Failed to find camera to map transform")
 
-        #TODO Use tranform and rotation to calculate 2D position of light in image
+        if not base_point:
+            return (0, 0)
 
-        x = 0
-        y = 0
+        base_point = base_point.point
+
+        print (base_point)
+
+        cx = image_width/2
+        cy = image_height/2
+        if fx < 10.:
+            fx = 2344.
+            fy = 2552.
+            cy = image_height 
+
+        cam_matrix = np.array([[fx,  0, cx],
+                               [ 0, fy, cy],
+                               [ 0,  0,  1]])
+        obj_points = np.array([[- base_point.y, - base_point.z, base_point.x]]).astype(np.float32)
+        result, _ = cv2.projectPoints(obj_points, (0,0,0), (0,0,0), cam_matrix, None)
+
+        #print(result)
+        cx = image_width/2
+        cy = image_height
+
+        x = int(result[0,0,0]) 
+        y = int(result[0,0,1])
+        print(x, y)
 
         return (x, y)
 
@@ -189,10 +213,21 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        tl_point = PointStamped()
+        tl_point.header = light.pose.header
+        tl_point.point = Point()
+        tl_point.point.x = light.pose.pose.position.x
+        tl_point.point.y = light.pose.pose.position.y
+        tl_point.point.z = light.pose.pose.position.z
 
-        x, y = self.project_to_image_plane(light.pose.pose.position)
+        x, y = self.project_to_image_plane(tl_point)
 
         #TODO use light location to zoom in on traffic light in image
+        clonned = cv_image.copy()
+        cv2.circle(clonned,(x,y), 10, ( 255, 0, 0 ), thickness=3) 
+        cv2.putText(clonned, 'x:{}; y:{}'.format(x,y), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 1, ( 255, 0, 0 )) 
+        #cv2.imwrite('/home/student/imgs/img{}_{}.jpg'.format(self.next_wp,self.save_counter), clonned, )
+        self.save_counter += 1
 
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
