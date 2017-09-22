@@ -379,7 +379,7 @@ class TLDetector(object):
                 state = TrafficLight.RED
                 #print "Red Light"
                 break  # Red has high priority, so, return it if it is seen
-        #print(state)
+        print(state, len(box))
         return state
 
     def create_light(self, x, y, z, yaw, state):
