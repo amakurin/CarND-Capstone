@@ -3,7 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint, TrafficLight, TrafficLightArray
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Bool
 import math
 import copy
 import tf
@@ -21,6 +21,9 @@ class WaypointUpdater(object):
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
+        
+        self.dbw_enabled = True
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
@@ -60,6 +63,11 @@ class WaypointUpdater(object):
 
                 self.final_waypoints_pub.publish(lane)
             rate.sleep()
+
+    def dbw_enabled_cb(self, msg):
+        self.dbw_enabled = msg.data
+        if not self.dbw_enabled:
+            self.stop_trajectory = None
 
     def euclidean_distance_2d(self, position1, position2):
         a = position1
@@ -146,7 +154,7 @@ class WaypointUpdater(object):
                 final_index = min(next_waypoint_index+LOOKAHEAD_WPS, len(self.waypoints))
                 for i in range(next_waypoint_index, final_index):
                     velocity_setpoint = cs(distance).tolist()
-                    if (i > stop_line_index) or (velocity_setpoint < 0.1):
+                    if (i > stop_line_index) or (velocity_setpoint < 0.3):
                         velocity_setpoint = 0.
                     wp = copy.deepcopy(self.waypoints[i])
                     wp.twist.twist.linear.x  = velocity_setpoint

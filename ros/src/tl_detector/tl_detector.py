@@ -177,10 +177,12 @@ class TLDetector(object):
 
         cx = image_width/2
         cy = image_height/2
+        # Ugly workaround wrong camera settings
         if fx < 10.:
             fx = 2344.
             fy = 2552.
             cy = image_height 
+            base_point.z -= 1
 
         cam_matrix = np.array([[fx,  0, cx],
                                [ 0, fy, cy],
@@ -220,12 +222,13 @@ class TLDetector(object):
         tl_point.point.y = light.pose.pose.position.y
         tl_point.point.z = light.pose.pose.position.z
 
-        x, y = self.project_to_image_plane(tl_point)
-
         #TODO use light location to zoom in on traffic light in image
-        clonned = cv_image.copy()
-        cv2.circle(clonned,(x,y), 10, ( 255, 0, 0 ), thickness=3) 
-        cv2.putText(clonned, 'x:{}; y:{}'.format(x,y), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 1, ( 255, 0, 0 )) 
+        # Projection wont work cuz of absent base_link->world transform on site
+        
+        #x, y = self.project_to_image_plane(tl_point)
+        #clonned = cv_image.copy()
+        #cv2.circle(clonned,(x,y), 10, ( 255, 0, 0 ), thickness=3) 
+        #cv2.putText(clonned, 'x:{}; y:{}'.format(x,y), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 1, ( 255, 0, 0 )) 
         #cv2.imwrite('/home/student/imgs/img{}_{}.jpg'.format(self.next_wp,self.save_counter), clonned, )
         self.save_counter += 1
 
@@ -292,7 +295,6 @@ class TLDetector(object):
         if light_wp > -1:
             state = self.get_light_state(light)
             return light_wp, state
-        #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
     def is_ahead(self, origin_pose, test_position):
