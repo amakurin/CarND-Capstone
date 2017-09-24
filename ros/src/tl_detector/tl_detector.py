@@ -35,7 +35,7 @@ class TLDetector(object):
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
 
-        self.cascade = cv2.CascadeClassifier('./cascade.xml') # Haar cascade for TL detection
+        self.cascade = cv2.CascadeClassifier('./cascade_gen.xml') # Haar cascade for TL detection
 
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and 
@@ -204,10 +204,16 @@ class TLDetector(object):
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
         #[alexm]NOTE: Temporal stub till detection\classification readiness
-        box = self.cascade.detectMultiScale(cv_image, 1.25, 20)
+        box = self.cascade.detectMultiScale(cv_image, 1.3, 3)
         state = TrafficLight.UNKNOWN
         img_width, img_height = 150, 150
         for (x,y,w,h) in box:
+            # FP filter
+            dh=int(round(h*0.1))
+            line = cv_image[(y+dh):(y+h-dh),int(round(x+w/2)),:]
+            if np.std(line) < 32: # Magic number out of experiments
+                print "False Detection!"
+                continue # FP detection
             tl_img = cv_image[y:(y + h), x:(x + w)]
             tl_img_rgb = cv2.resize(tl_img, (img_width, img_height))
             tl_img_rgb = cv2.cvtColor(tl_img_rgb , cv2.COLOR_BGR2RGB)
