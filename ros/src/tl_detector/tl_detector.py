@@ -12,10 +12,7 @@ import math
 import cv2
 import yaml
 import numpy as np
-import tensorflow as tensorflow
 from scipy import spatial
-from keras.models import load_model
-from keras.preprocessing.image import img_to_array, load_img
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -34,8 +31,6 @@ class TLDetector(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
-
-        self.cascade = cv2.CascadeClassifier('./cascade_gen.xml') # Haar cascade for TL detection
 
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
@@ -56,9 +51,6 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
-
-        self.test_model = load_model('models/tl_state_vgg.h5')
-        self.graph = tensorflow.get_default_graph()
         
         self.listener = tf.TransformListener()
 
@@ -222,16 +214,16 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        tl_point = PointStamped()
-        tl_point.header = light.pose.header
-        tl_point.point = Point()
-        tl_point.point.x = light.pose.pose.position.x
-        tl_point.point.y = light.pose.pose.position.y
-        tl_point.point.z = light.pose.pose.position.z
 
         #TODO use light location to zoom in on traffic light in image
         # Projection wont work cuz of absent base_link->world transform on site
         
+        #tl_point = PointStamped()
+        #tl_point.header = light.pose.header
+        #tl_point.point = Point()
+        #tl_point.point.x = light.pose.pose.position.x
+        #tl_point.point.y = light.pose.pose.position.y
+        #tl_point.point.z = light.pose.pose.position.z
         #x, y = self.project_to_image_plane(tl_point)
         #clonned = cv_image.copy()
         #cv2.circle(clonned,(x,y), 10, ( 255, 0, 0 ), thickness=3) 
@@ -240,46 +232,7 @@ class TLDetector(object):
         #self.save_counter += 1
 
         #Get classification
-        #return self.light_classifier.get_classification(cv_image)
-        #[alexm]NOTE: Temporal stub till detection\classification readiness
-        box = self.cascade.detectMultiScale(cv_image, 1.3, 3)
-        state = TrafficLight.UNKNOWN
-        img_width, img_height = 150, 150
-        for (x,y,w,h) in box:
-            # FP filter
-            dh=int(round(h*0.1))
-            line = cv_image[(y+dh):(y+h-dh),int(round(x+w/2)),:]
-            if np.std(line) < 32: # Magic number out of experiments
-                print "False Detection!"
-                continue # FP detection
-            tl_img = cv_image[y:(y + h), x:(x + w)]
-            tl_img_rgb = cv2.resize(tl_img, (img_width, img_height))
-            tl_img_rgb = cv2.cvtColor(tl_img_rgb , cv2.COLOR_BGR2RGB)
-            tl_img_data = img_to_array(tl_img_rgb)
-            tl_img_data = np.expand_dims(tl_img_data, axis=0)
-            with self.graph.as_default():
-                predictedclass = self.test_model.predict_classes(tl_img_data, verbose=False)
-            #debug
-            #cv2.putText(tl_img_rgb, str(predictedclass), (50,50),cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255))
-            #cv2.imshow("predicted:{}".format(str(predictedclass)), cv_image)
-            #cv2.waitKey(0)
-            #cv2.destroyAllWindows()
-            if int(predictedclass) == 2:
-                state = TrafficLight.YELLOW
-                print "Yellow Light"
-                continue
-            elif int(predictedclass) == 1:
-                state = TrafficLight.GREEN
-                print "Green light"
-                continue
-            elif int(predictedclass) == 3:
-                state = TrafficLight.RED
-                print "Red Light"
-                break  # Red has high priority, so, return it if it is seen
-            else:
-                state = None
-                continue
-        #print(state)
+        state = self.light_classifier.get_classification(cv_image)
         return state
 
     def create_light(self, x, y, z, yaw, state):
