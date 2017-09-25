@@ -52,6 +52,7 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
+        self.light_classifier.init()
         
         self.listener = tf.TransformListener()
 
@@ -272,6 +273,7 @@ class TLDetector(object):
                     if (distance < min_distance):
                         light_wp = stop_line_wp_index
                         light = self.lights[i]
+        self.get_light_state(light)
 #        print('n_wp:{}; l_wp:{}'.format(self.next_wp, light_wp))
         if light_wp > -1:
             state = self.get_light_state(light)
