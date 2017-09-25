@@ -8,7 +8,7 @@ import numpy as np
 class TLClassifier(object):
     def __init__(self):
         self.cascade = cv2.CascadeClassifier('./cascade_gen.xml') # Haar cascade for TL detection
-        self.test_model = load_model('./models/tl_state_vgg.h5')
+        self.test_model = load_model('./models/tl_state_aug_v3.h5')
         self.graph = tensorflow.get_default_graph()
         pass
 
