@@ -128,7 +128,7 @@ class WaypointUpdater(object):
 
 
     def waypoints_cb(self, lane):
-        if self.waypoints != lane.waypoints:
+        if hasattr(self, 'waypoints') and self.waypoints != lane.waypoints:
             self.waypoints = lane.waypoints
             #[alexm]NOTE: full search current position on each update of waypoints
             self.next_waypoint_index = None

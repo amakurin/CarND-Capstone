@@ -10,6 +10,7 @@ class TLClassifier(object):
         self.cascade = cv2.CascadeClassifier('./cascade_gen.xml') # Haar cascade for TL detection
         self.test_model = load_model('./models/tl_state_aug_v3.h5')
         self.graph = tensorflow.get_default_graph()
+        self.save_counter = 0
         pass
 
     def get_classification(self, cv_image):
@@ -22,6 +23,8 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
+#        clonned = cv_image.copy()
+
         box = self.cascade.detectMultiScale(cv_image, 1.3, 3)
         state = TrafficLight.UNKNOWN
         img_width, img_height = 150, 150
@@ -42,17 +45,24 @@ class TLClassifier(object):
 
             if int(predictedclass) == 2:
                 state = TrafficLight.YELLOW
+#                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 255, 255))
                 print "Yellow Light"
                 continue
             elif int(predictedclass) == 1:
                 state = TrafficLight.GREEN
+#                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 255, 0))
                 print "Green light"
                 continue
             elif int(predictedclass) == 3:
                 state = TrafficLight.RED
+#                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 0, 255))
                 print "Red Light"
                 break  # Red has high priority, so, return it if it is seen
             else:
-                state = None
+#                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 0, 0))
                 continue
+
+#        cv2.imwrite('/home/student/imgs/img_{num:03d}.jpg'.format(num=self.save_counter), clonned, )
+        self.save_counter += 1
+
         return state

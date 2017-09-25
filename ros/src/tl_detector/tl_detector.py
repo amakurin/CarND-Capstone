@@ -45,6 +45,7 @@ class TLDetector(object):
         rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
         rospy.Subscriber('/next_wp', Int32, self.next_wp_cb, queue_size=1)
         config_string = rospy.get_param("/traffic_light_config")
+        
         self.config = yaml.load(config_string)
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
@@ -271,6 +272,7 @@ class TLDetector(object):
                     if (distance < min_distance):
                         light_wp = stop_line_wp_index
                         light = self.lights[i]
+#        print('n_wp:{}; l_wp:{}'.format(self.next_wp, light_wp))
         if light_wp > -1:
             state = self.get_light_state(light)
             return light_wp, state
