@@ -68,7 +68,7 @@ class TLDetector(object):
         self.state_count = 0
 
         self.next_wp = None
-        self.save_counter = 0
+        #self.save_counter = 0
         rospy.spin()
 
     def next_wp_cb(self, val):
@@ -237,7 +237,7 @@ class TLDetector(object):
         #cv2.circle(clonned,(x,y), 10, ( 255, 0, 0 ), thickness=3) 
         #cv2.putText(clonned, 'x:{}; y:{}'.format(x,y), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 1, ( 255, 0, 0 )) 
         #cv2.imwrite('/home/student/imgs/img{}_{}.jpg'.format(self.next_wp,self.save_counter), clonned, )
-        self.save_counter += 1
+        #self.save_counter += 1
 
         #Get classification
         #return self.light_classifier.get_classification(cv_image)
