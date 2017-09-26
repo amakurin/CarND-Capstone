@@ -80,6 +80,12 @@ class TLDetector(object):
             self.stop_lines = None
 
     def find_stop_line_position(self, light):
+        """Finds stop line position from config corresponding to given light 
+        Args:
+            msg (Image): image from car-mounted camera
+
+        """
+
         stop_line_positions = self.config['stop_line_positions']
         min_distance = 100000
         result = None
@@ -233,18 +239,6 @@ class TLDetector(object):
             state = self.last_state
         return state
 
-    def create_light(self, x, y, z, yaw, state):
-        light = TrafficLight()
-
-        light.header = Header()
-        light.header.stamp = rospy.Time.now()
-        light.header.frame_id = '/world'
-
-        light.pose = self.create_pose(x, y, z, yaw)
-        light.state = state
-
-        return light
-
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color
@@ -276,6 +270,14 @@ class TLDetector(object):
         return -1, TrafficLight.UNKNOWN
 
     def is_ahead(self, origin_pose, test_position):
+        """Determines if test position is ahead of origin_pose
+        Args:
+            origin_pose - geometry_msgs.msg.Pose instance
+            test_position - geometry_msgs.msg.Point instance, or tuple (x,y)
+
+        Returns:
+            bool: True iif test_position is ahead of origin_pose
+        """
         test_x = self.get_x(test_position)
         test_y = self.get_y(test_position)
 
@@ -288,7 +290,12 @@ class TLDetector(object):
         return orig_x > 0.
 
     def euclidean_distance_2d(self, position1, position2):
-
+        """Finds distance between two position1 and position2
+        Args:
+            position1, position2 - geometry_msgs.msg.Point instance, or tuple (x,y)
+        Returns:
+            double: distance
+        """
         a_x = self.get_x(position1)
         a_y = self.get_y(position1)
         b_x = self.get_x(position2)

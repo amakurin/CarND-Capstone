@@ -10,8 +10,7 @@ class TLClassifier(object):
         self.cascade = None # Haar cascade for TL detection
         self.test_model = None
         self.graph = None
-        self.save_counter = 0
-        pass
+#        self.save_counter = 0
 
     def init(self):
         self.cascade = cv2.CascadeClassifier('./cascade_gen.xml') # Haar cascade for TL detection
@@ -101,6 +100,6 @@ class TLClassifier(object):
                 continue
 
 #        cv2.imwrite('/home/student/imgs/img_{num:03d}.jpg'.format(num=self.save_counter), cv_image)
-        self.save_counter += 1
+#        self.save_counter += 1
 
         return state
