@@ -14,7 +14,7 @@ import yaml
 import numpy as np
 from scipy import spatial
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 2
 
 MAX_DECEL = 1.
 
@@ -62,7 +62,6 @@ class TLDetector(object):
         self.state_count = 0
 
         self.next_wp = None
-        #self.save_counter = 0
         rospy.spin()
 
     def next_wp_cb(self, val):
@@ -227,14 +226,11 @@ class TLDetector(object):
         #tl_point.point.y = light.pose.pose.position.y
         #tl_point.point.z = light.pose.pose.position.z
         #x, y = self.project_to_image_plane(tl_point)
-        #clonned = cv_image.copy()
-        #cv2.circle(clonned,(x,y), 10, ( 255, 0, 0 ), thickness=3) 
-        #cv2.putText(clonned, 'x:{}; y:{}'.format(x,y), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 1, ( 255, 0, 0 )) 
-        #cv2.imwrite('/home/student/imgs/img{}_{}.jpg'.format(self.next_wp,self.save_counter), clonned, )
-        #self.save_counter += 1
 
         #Get classification
         state = self.light_classifier.get_classification(cv_image)
+        if state == TrafficLight.UNKNOWN and self.last_state:
+            state = self.last_state
         return state
 
     def create_light(self, x, y, z, yaw, state):

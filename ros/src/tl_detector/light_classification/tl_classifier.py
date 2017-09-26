@@ -100,7 +100,7 @@ class TLClassifier(object):
 #                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 0, 0), thickness=3)
                 continue
 
-#        cv2.imwrite('/home/student/imgs/img_{num:03d}.jpg'.format(num=self.save_counter), clonned, )
-#        self.save_counter += 1
+#        cv2.imwrite('/home/student/imgs/img_{num:03d}.jpg'.format(num=self.save_counter), cv_image)
+        self.save_counter += 1
 
         return state
