@@ -53,7 +53,7 @@ class Controller(object):
 
         velocity_correction = self.linear_pid.step(linear_velocity_error, sample_step)
         velocity_correction = self.low_pass_filter_correction.filt(velocity_correction)
-        if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 0.3:
+        if abs(linear_velocity_setpoint)<0.01 and abs(linear_current_velocity) < 0.1:
             velocity_correction = self.decel_limit
         throttle = velocity_correction
         brake = 0.
