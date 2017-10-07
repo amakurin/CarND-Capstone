@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Int32
-from geometry_msgs.msg import PoseStamped, Pose, Point, PointStamped
+from geometry_msgs.msg import PoseStamped, Pose, Point, PointStamped, TwistStamped
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
@@ -44,6 +44,7 @@ class TLDetector(object):
         rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
         rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
         rospy.Subscriber('/next_wp', Int32, self.next_wp_cb, queue_size=1)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
         config_string = rospy.get_param("/traffic_light_config")
         
         self.config = yaml.load(config_string)
@@ -56,6 +57,7 @@ class TLDetector(object):
         
         self.listener = tf.TransformListener()
 
+        self.current_velocity = None
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
@@ -63,6 +65,9 @@ class TLDetector(object):
 
         self.next_wp = None
         rospy.spin()
+
+    def current_velocity_cb(self, msg):
+        self.current_velocity = msg
 
     def next_wp_cb(self, val):
         self.next_wp = val.data
@@ -237,7 +242,21 @@ class TLDetector(object):
         state = self.light_classifier.get_classification(cv_image)
         if state == TrafficLight.UNKNOWN and self.last_state:
             state = self.last_state
+        
+        if state == TrafficLight.YELLOW:
+            print "Yellow"
+        elif state == TrafficLight.GREEN:
+            print "Green"
+        elif state == TrafficLight.RED:
+            print "Red"
+        else:
+            print "Unknown"
+
         return state
+
+    def stop_path(self, twist_stamped, decel):
+        v = twist_stamped.twist.linear.x
+        return 0.5*v*v/decel
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -249,11 +268,11 @@ class TLDetector(object):
         """
         light = None
         light_wp = -1
+        min_distance = 0.
 
         if(self.waypoints and self.next_wp and self.stop_lines):
             next_wp = self.waypoints[min(self.next_wp, len(self.waypoints)-1)]
-            target_velocity = next_wp.twist.twist.linear.x
-            search_distance = target_velocity * target_velocity / 2 / MAX_DECEL
+            search_distance = self.stop_path(next_wp.twist, MAX_DECEL)
             min_distance = search_distance
             for i in range(len(self.stop_lines)):
                 stop_line_wp_index = self.stop_lines[i]
@@ -263,10 +282,16 @@ class TLDetector(object):
                     if (distance < min_distance):
                         light_wp = stop_line_wp_index
                         light = self.lights[i]
+                        min_distance = distance
 #        print('n_wp:{}; l_wp:{}'.format(self.next_wp, light_wp))
         if light_wp > -1:
             state = self.get_light_state(light)
-            return light_wp, state
+            if self.current_velocity and state == TrafficLight.YELLOW \
+                and (min_distance < self.stop_path(self.current_velocity, MAX_DECEL)):
+                print "Too close Yellow - IGNORING"
+                return -1, TrafficLight.UNKNOWN
+            else:
+                return light_wp, state
         return -1, TrafficLight.UNKNOWN
 
     def is_ahead(self, origin_pose, test_position):

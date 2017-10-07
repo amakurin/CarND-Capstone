@@ -70,7 +70,7 @@ class TLClassifier(object):
             dh=int(round(h*0.1))
             line = cv_image[(y+dh):(y+h-dh),int(round(x+w/2)),:]
             if np.std(line) < 32: # Magic number out of experiments
-                print "False Detection!"
+#                print "False Detection!"
                 continue # FP detection
             tl_img = cv_image[y:(y + h), x:(x + w)]
             tl_img_rgb = cv2.resize(tl_img, (img_width, img_height))
@@ -83,17 +83,17 @@ class TLClassifier(object):
             if int(predictedclass) == 2:
                 state = TrafficLight.YELLOW
 #                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 255, 255), thickness=3)
-                print "Yellow Light"
+#                print "Yellow Light"
                 continue
             elif int(predictedclass) == 1:
                 state = TrafficLight.GREEN
 #                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 255, 0), thickness=3)
-                print "Green light"
+#                print "Green light"
                 continue
             elif int(predictedclass) == 3:
                 state = TrafficLight.RED
 #                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 0, 255), thickness=3)
-                print "Red Light"
+#                print "Red Light"
                 break  # Red has high priority, so, return it if it is seen
             else:
 #                cv2.rectangle(clonned, (x,y), (x+w,y+h), (0, 0, 0), thickness=3)

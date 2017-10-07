@@ -66,11 +66,10 @@ class Controller(object):
         #[alexm]::NOTE this lowpass leads to sending both throttle and brake nonzero. Maybe it is better to filter velocity_correction
         #brake = self.low_pass_filter_brake.filt(brake)
         #steering = self.yaw_controller.get_steering_pid(angular_velocity_setpoint, angular_current, dbw_enabled)
-        #steering = self.yaw_controller.get_steering_pid_cte(final_waypoint1, final_waypoint2, current_location, dbw_enabled)
-
-        #[alexm]::NOTE changed static 10.0 to linear_current_velocity and surprisingly car behave better on low speeds. Need to look close to formulas...
-        #PID also improves the same with the factor
-        #moved factor into function because limits are checked in that function
+        #steering = 0.
+        #if final_waypoint1 and final_waypoint2 and linear_current_velocity < 1.:
+        #    steering = self.yaw_controller.get_steering_pid_cte(final_waypoint1, final_waypoint2, current_location, dbw_enabled)
+        #else:
         steering = self.yaw_controller.get_steering_calculated(linear_velocity_setpoint, angular_velocity_setpoint, linear_current_velocity)
 
         return throttle, brake, steering

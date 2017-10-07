@@ -82,7 +82,7 @@ class DBWNode(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(20) # 50Hz
+        rate = rospy.Rate(10) # 50Hz
         while not rospy.is_shutdown():
             # You should only publish the control commands if dbw is enabled
             if (self.final_waypoints is not None) and (self.current_pose is not None) \
