@@ -1,5 +1,5 @@
 from styx_msgs.msg import TrafficLight
-from keras.models import load_model
+from keras.models import load_model, model_from_json
 from keras.preprocessing.image import img_to_array, load_img
 import tensorflow as tensorflow
 import cv2
@@ -14,7 +14,12 @@ class TLClassifier(object):
 
     def init(self):
         self.cascade = cv2.CascadeClassifier('./cascade_gen.xml') # Haar cascade for TL detection
-        self.test_model = load_model('./models/tl_state_aug_v3.h5')
+        #self.test_model = load_model('./models/tl_state_aug_v3.h5')
+        model_json = ''
+        with open('./models/m_structure.json', 'r') as file:
+            model_json = file.read();
+        self.test_model = model_from_json(model_json)
+        self.test_model.load_weights('./models/m_weights.h5')
         self.graph = tensorflow.get_default_graph()
 
     # Faster Non-Maximum Suppression
