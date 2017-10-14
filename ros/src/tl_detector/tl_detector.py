@@ -46,14 +46,13 @@ class TLDetector(object):
         rospy.Subscriber('/next_wp', Int32, self.next_wp_cb, queue_size=1)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
         config_string = rospy.get_param("/traffic_light_config")
-        
+        self.initialized = False
         self.config = yaml.load(config_string)
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
-        self.light_classifier.init()
         
         self.listener = tf.TransformListener()
 
@@ -64,6 +63,10 @@ class TLDetector(object):
         self.state_count = 0
 
         self.next_wp = None
+
+        self.light_classifier.init()
+        self.initialized = True
+
         rospy.spin()
 
     def current_velocity_cb(self, msg):
@@ -127,6 +130,10 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
+        if (not self.initialized):
+            return
+
+
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()

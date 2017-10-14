@@ -7,7 +7,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 
-save_dir = '.' # EDIT Set the directory for images
+save_dir = '/home/student/imgs' # EDIT Set the directory for images
 
 i = 0
 def img_save(img):
